@@ -1,0 +1,44 @@
+* =xrayAttenuation=
+
+This library provides the ability to compute transmission / absorption
+behavior of X-rays at different energies for all elements below Z
+< 93.
+
+Mass attenuation coefficients μ_m/ρ are used in the Beer-Lambert law
+to compute the absorption behavior. For most energies these are first
+computed from scattering form factors.
+
+Currently only single elements are supported, but composite mixtures
+will be added.
+
+The library basically provides Nim types for all different elements
+that are supported via a =Element[Z: static int]= base type.
+
+Example:
+#+begin_src nim
+import xrayAttenuation
+  
+let ar = Argon.init() # generate an Argon instance
+ar.plotAttenuation() # generate a plot of the attenuation factors against energy
+
+# compute a density at known pressure and temperature (the molar mass is filled automatically
+# in `init`)
+let ρ_Ar = density(1050.mbar.to(Pascal), 293.K, ar.molarMass)
+# use our density and a desired length to generate a plot of the transmission in 3cm Argon
+ar.plotTransmission(ρ_Ar, 3.cm.to(m))
+# compute an individual absorption length at a desired energy
+echo absorptionLength(2.5.keV, numberDensity(ρ_Ar, ar.molarMass),
+                      ar.f2.eval(2.5))
+#+end_src
+
+** Data
+
+The data used for the calculations are a mix of the dataset by NIST:
+
+https://www.nist.gov/pml/x-ray-mass-attenuation-coefficients
+
+and the Center for X-ray Optics ("Henke"):
+https://henke.lbl.gov/optical_constants/
+and specifically:
+https://henke.lbl.gov/optical_constants/asf.html
+

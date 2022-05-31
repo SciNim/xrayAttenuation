@@ -3,6 +3,7 @@ import ggplotnim, numericalnim, unchained
 
 
 import xrayAttenuation / [physics_utils, macro_utils]
+export physics_utils
 
 #[
 Note:

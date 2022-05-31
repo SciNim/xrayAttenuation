@@ -172,6 +172,9 @@ proc readMolarMasses(): DataFrame =
         idx("AtomicWeight[g/mol]").toFloat)
     })
 
+proc f2eval*(it: AnyElement, val: keV): float =
+  it.f2.eval(val.float)
+
 proc name*(e: AnyElement | typedesc[AnyElement]): string =
   ## Returns the name of the given element. Takes care of converting
   ## `Element[Z]` style "types" into their correct names.
@@ -268,4 +271,4 @@ when isMainModule:
   ar.plotAttenuation()
   ar.plotTransmission(ρ_Ar, 3.cm.to(m))
   echo absorptionLength(2.5.keV, numberDensity(ρ_Ar, ar.molarMass),
-                        ar.f2.eval(2.5))
+                        ar.f2eval(2.5.keV))

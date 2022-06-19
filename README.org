@@ -29,7 +29,31 @@ ar.plotTransmission(ρ_Ar, 3.cm.to(m))
 # compute an individual absorption length at a desired energy
 echo absorptionLength(2.5.keV, numberDensity(ρ_Ar, ar.molarMass),
                       ar.f2.eval(2.5))
+
+# this can also be computed for compounds. To make construction of a
+# compound easier, we can use the `compound` macro
+block SimpleCompound:
+  let Si = Silicon.init()
+  let N = Nitrogen.init()
+  let Si₃N₄ = initCompound((Si, 3), (N, 4))
+  Si₃N₄.plotTransmission(Si₃N₄.ρ, # for some common compounds we have a table of densities,
+                                 # which are filled upon compound initialization
+                         300.nm.to(Meter))
+block CompoundMacro:
+  # or simpler using the macro (i.e. no initialization of `Si` and `N` needed:
+  let Si₃N₄ = compound (Si, 3), (N, 4)
+  Si₃N₄.plotTransmission(Si₃N₄.ρ, 300.nm.to(Meter))
+
+# finally, reflectivities can be computed
+let Au = Gold.init()
+# note: currently densities of elements are not read by default. 
+discard Au.plotReflectivity(19.32.g•cm⁻³,
+                            θ = 0.5.°) # incidence angle of 0.5° from surface
+# the procedure (currently, but that will be changed) returns the DF containing the reflectivity
 #+end_src
+
+See the API (docs will be published soon) / source file on how to compute individual properties
+directly instead of only plotting the data.
 
 ** Data
 

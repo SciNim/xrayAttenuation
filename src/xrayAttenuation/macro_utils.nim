@@ -3,6 +3,7 @@ import std / [macros, macrocache]
 ## These tables are filled in the main program where the types are generated
 const ElementTable = CacheTable"Elements"
 const ElementSymbolTable = CacheTable"ElementSymbols"
+const ElementChemToNameTable = CacheTable"ElementChemToName"
 const ElementSeq = CacheSeq"ElementSeq"
 
 proc getTypedescField(n: NimNode): NimNode =
@@ -27,6 +28,9 @@ proc getName*(t: NimNode): NimNode =
 
 macro lookupInverseName*(t: typed): untyped =
   result = getName(t)
+
+proc lookupNameFromChemSymbol*(t: string): NimNode =
+  result = ElementChemToNameTable[t]
 
 macro lookupChemSymbol*(t: typed): untyped =
   let name = getName(t)

@@ -2,7 +2,7 @@
 
 version       = "0.1.0"
 author        = "Vindaar"
-description   = "Library for X-ray transmission / absorption through matter"
+description   = "Library for X-ray reflectivity and transmission / absorption through matter"
 license       = "MIT"
 srcDir        = "src"
 

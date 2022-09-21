@@ -387,6 +387,12 @@ proc attenuationCoefficient*(c: Compound, energy: keV): cm²•g⁻¹ =
     sum_σs += num.float * el.atomicAbsorptionCrossSection(energy)
   result = factor * sum_σs
 
+proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
+  ## Computes the absorption length of the given compound and density at `energy`.
+  ##
+  ## Equivalent to the inverse attenuation cofficient.
+  result = (1.0 / (attenuationCoefficient(c, energy) * ρ)).to(Meter)
+
 proc delta*(e: AnyElement, energy: keV, ρ: g•cm⁻³): float =
   ## Computes the `delta` of the element at `energy` and density `ρ`
   result = delta(energy, numberDensity(ρ, e.molarMass), e.f1eval(energy))

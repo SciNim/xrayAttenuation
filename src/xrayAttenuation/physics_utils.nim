@@ -85,9 +85,10 @@ proc transmission*(μ: cm²•g⁻¹, ρ: g•cm⁻³, length: Meter): UnitLess 
 proc absorptionLength*(energy: keV, n_a: cm⁻³, f2: UnitLess): Meter =
   ## Computes the absorption length given a number density `n_a` and
   ## scattering factor `f2` at an energy `keV`.
-  result = 1.0 / (2 * n_a * r_e * wavelength(energy) * f2)
-
-#proc delta*(e: AnyElement): float =
+  ##
+  ## Equivalent to `1.0 / (μ * ρ)`.
+  let σ_A = atomicAbsorptionCrossSection(energy, f2)
+  result = (1.0 / (n_a * σ_A)).to(Meter)
 
 proc delta*(energy: keV, n_a: cm⁻³, f1: float): float =
   ## Computes `delta` at the given `energy` given scattering factor `f1` and

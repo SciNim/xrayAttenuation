@@ -77,7 +77,8 @@ macro generateElements(elms: untyped): untyped =
 
     elements.add name
   let orN = elements.genTypeClass()
-  result.add nnkTypeDef.newTree(ident"AnyElement", newEmptyNode(),
+  result.add nnkTypeDef.newTree(nnkPostfix.newTree(ident"*", ident"AnyElement"),
+                                newEmptyNode(),
                                 orN)
 
 ## The following generates types with static int arguments representing their
@@ -177,7 +178,7 @@ generateElements:
   Uranium      = (92, U )
 
 type
-  AnyCompound = Compound | AnyElement
+  AnyCompound* = Compound | AnyElement
 
 ## Usually not a fan of converters, but this should be safe. We only need it to
 ## construct `Compounds` from any statically typed `Element`

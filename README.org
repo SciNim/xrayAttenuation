@@ -97,6 +97,10 @@ In particular this PDF of "Useful formulas" is pretty handy:
 
 https://xdb.lbl.gov/Section5/Sec_5-5.pdf
 
+Further, NIST provides another database of scattering factors and
+other numbers:
+https://physics.nist.gov/PhysRefData/FFast/html/form.html
+
 *** Other libraries for X-ray calculations
 
 The DarpanX library provides similar functionality to this library,

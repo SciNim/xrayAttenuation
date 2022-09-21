@@ -8,5 +8,5 @@ authors:
 title: "xrayAttenuation"
 abstract: "Library for X-ray reflectivity and transmission through matter"
 version: 0.1.0
-date-released: 2022-21-09
+date-released: 2022-09-21
 url: "https://github.com/SciNim/xrayAttenuation"

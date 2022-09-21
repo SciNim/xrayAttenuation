@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use xrayAttenuation in your work, please cite it as below."
+authors:
+- family-names: "Schmidt"
+  given-names: "Sebastian Michael"
+  affiliation: Physikalisches Institut der Universität Bonn
+title: "xrayAttenuation"
+abstract: "Library for X-ray reflectivity and transmission through matter"
+version: 0.1.0
+date-released: 2022-21-09
+url: "https://github.com/SciNim/xrayAttenuation"

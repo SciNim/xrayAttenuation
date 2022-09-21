@@ -25,7 +25,7 @@ defUnit(m⁻³, toExport = true)
 defUnit(m⁻³•kg, toExport = true)
 defUnit(m⁻³•mol, toExport = true)
 defUnit(m⁻¹, toExport = true)
-
+defUnit(Joule•Meter, toExport = true)
 
 proc density*(p: Pascal, T: Kelvin, M: g•mol⁻¹): g•cm⁻³ =
   ## Compute the density `ρ` using the ideal gas law based on the given
@@ -40,7 +40,7 @@ proc numberDensity*(ρ: g•cm⁻³, M: g•mol⁻¹): cm⁻³ =
 
 proc wavelength*(energy: keV): Meter =
   ## Compute the wavelength of the X-ray with the given `energy`.
-  result = hp * c / (energy.to(Joule))
+  result = (hp * c / energy).to(Meter)
 
 proc atomicAbsorptionCrossSection*(energy: keV, f2: UnitLess): cm² =
   ## Computes the atomic absoprtion cross section `σ_a` based on the scattering factor `f2`
@@ -154,7 +154,7 @@ proc rij_s*(ni, nj: float, θ: Degree): float =
 #proc refR*(
 
 proc scatteringPotential(ρ: cm⁻³): m⁻² =
-  result = (4*π * r_e * ρ)
+  result = (4*π * r_e * ρ).to(Meter⁻²)
 
 proc reflectivity*(θ: Degree, ρ: cm⁻³, energy: keV, n: Complex[float], σ: Meter): float =
   ## `σ`: surface roughness

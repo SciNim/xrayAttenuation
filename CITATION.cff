@@ -4,6 +4,7 @@ authors:
 - family-names: "Schmidt"
   given-names: "Sebastian Michael"
   affiliation: Physikalisches Institut der Universität Bonn
+- name: SciNim contributors
 title: "xrayAttenuation"
 abstract: "Library for X-ray reflectivity and transmission through matter"
 version: 0.1.0

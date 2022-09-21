@@ -19,8 +19,7 @@ let au = Gold.init()
 let ρ_Au = 19.32.g•cm⁻³
 echo "num density Gold: ", numberDensity(ρ_Au, au.molarMass), " vs ", numberDensity(ρ_Ar, ar.molarMass)
 #if true: quit()
-let df = au.plotReflectivity(ρ_Au) #, 0.5.Degree)
-
+let df = au.plotReflectivity(ρ_Au, 0.5.Degree) #, 0.5.Degree)
 
 let Si₃N₄ = compound((Si, 3), (N, 4))
 Si₃N₄.plotTransmission(3.44.g•cm⁻³, 300.nm.to(Meter))
@@ -48,6 +47,7 @@ block TestCompareAuReflectivityHenke:
   echo dfR
   ggplot(df, aes("Energy[keV]")) +
     geom_line(aes = aes(y = "Rs")) +
+    xlim(0.0, 2.0) + ylim(0.85, 1.0) +
     geom_line(data = dfR, aes = aes("Energy[keV]", "Reflectivity"), lineType = ltDashed, color = "red") +
     ggtitle(&"Reflectivity Gold at θ = {0.5.°}, at ρ = {19.32.g•cm⁻³}") +
     ggsave("/tmp/reflectivity_gold_0_5.deg.pdf", width = 800, height = 480)

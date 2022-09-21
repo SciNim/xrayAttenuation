@@ -8,11 +8,10 @@ Mass attenuation coefficients μ_m/ρ are used in the Beer-Lambert law
 to compute the absorption behavior. For most energies these are first
 computed from scattering form factors.
 
-Currently only single elements are supported, but composite mixtures
-will be added.
-
 The library basically provides Nim types for all different elements
-that are supported via a =Element[Z: static int]= base type.
+that are supported via a =Element[Z: static int]= base type and
+compounds of multiple elements via a =Compound= type, which stores the
+element and number of atoms of that type.
 
 Example:
 #+begin_src nim

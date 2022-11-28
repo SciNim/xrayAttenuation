@@ -189,7 +189,8 @@ proc Z*(e: AnyElement): int
 
 proc readNistData(element: var AnyElement) =
   let z = Z(element)
-  let path = Resources / NIST / &"data_element_{element.name()}_Z_{z}.csv"
+  let name = if element.name() == "Aluminium": "Aluminum" else: element.name()
+  let path = Resources / NIST / &"data_element_{name}_Z_{z}.csv"
   echo path
   element.nistDf = readCsv(path, sep = '\t')
     .mutate(f{float: "Energy[keV]" ~ idx("Energy[MeV]").MeV.to(keV).float})

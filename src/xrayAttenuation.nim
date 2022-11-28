@@ -439,17 +439,23 @@ proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: 
 ## Plotting related procs ######
 ################################
 
-proc plotAttenuation*(element: Element, outpath = "/tmp") =
+proc plotAttenuation*(element: Element,
+                      range: (float, float) = (0.0, 1e-2),
+                      logLog = false,
+                      outpath = "/tmp") =
   ## Create a plot of the attenuation coefficients in `outpath` of the given
   ## element. A log-log plot with both `μ/ρ` and `μ_en/ρ`.
   var df = element.nistDf
     .gather(["μ/ρ", "μ_en/ρ"], "Type", "Value")
   let z = Z(element)
-  ggplot(df, aes("Energy[MeV]", "Value", color = "Type")) +
+  var plt = ggplot(df, aes("Energy[MeV]", "Value", color = "Type")) +
     geom_line() +
-    xlim(0.0, 1e-2) +
-    xlab("Photon energy [MeV]") + ylab("Attenuation coefficient") +
-    #scale_x_log10() + scale_y_log10() +
+    xlab("Photon energy [MeV]") + ylab("Attenuation coefficient")
+  if logLog:
+    plt = plt + scale_x_log10() + scale_y_log10()
+  else:
+    plt = plt + xlim(range[0], range[1])
+  plt +
     ggtitle(&"Mass attenuation coefficient for: {element.name()} Z = {z}") +
     ggsave(outpath / &"attenuation_{element.name()}.pdf")
 

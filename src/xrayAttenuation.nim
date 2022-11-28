@@ -268,13 +268,21 @@ proc init*[T: AnyElement](element: typedesc[T]): T =
   result.f2 = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
                           result.henkeDf["f2", float].toSeq1D)
   ## fix interp!
-  ## NOTE: In order to get it working, we need to modify the mass attenuation coefficients
-  ## we download from NIST. It currently has the same energy at every value right _before_
-  ## and _on_ a transition line. Instead we need to modify it such that the value before
+  ## NIST data has the same energy at every value right _before_ and _on_ a
+  ## transition line. Instead we need to modify it such that the value before
   ## is at a slightly lower energy!
-  ## TODO: We don't really need `μInterp` anymore. Just remove?
-  #result.μInterp = newLinear1D(result.nistDf["Energy[keV]", float].toSeq1D,
-  #                             result.nistDf["μ/ρ", float].toSeq1D)
+  ## So create a lagged column and modify the energy column to have a small shift in
+  ## each point that is duplicated
+  result.nistDf["EnergyLag"] = lag(result.nistDf["Energy[keV]"])
+  result.nistDf = result.nistDf
+    .mutate(f{float: "Energy[keV]" ~ (
+      if idx("EnergyLag") == idx("Energy[keV]"):
+        idx("Energy[keV]") + 0.01 * idx("Energy[keV]")
+      else:
+        idx("Energy[keV]")
+        )})
+  result.μInterp = newLinear1D(result.nistDf["Energy[keV]", float].toSeq1D,
+                               result.nistDf["μ/ρ", float].toSeq1D)
 
 proc name*(c: Compound): string
 proc initCompound*(elements: varargs[(ElementRT, int)]): Compound =

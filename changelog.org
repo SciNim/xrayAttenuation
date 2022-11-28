@@ -1,0 +1,8 @@
+* v0.1.1
+- fix attenuation coefficient interpolation from NIST data
+- use NIST attenuation coefficients for > 30 keV for now instead of
+  computing from f1, f2
+- allow more parameters in plotting of attenuation and transmission
+- change naming of some resource files  
+* v0.1.0
+- initial release with basic features

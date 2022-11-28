@@ -37,7 +37,12 @@ proc extractData(html: string): tuple[element: string, data: seq[string]] =
 proc writeData(tup: tuple[element: string, data: seq[string]]) =
   let header = "Lines\tEnergy[MeV]\tμ/ρ\tμ_en/ρ\n"
   createDir(outpath)
-  var outfile = open(outpath / "data_element_" & tup.element.replace(" ", "_") & ".csv", fmWrite)
+  var elementName = tup.element.replace(" ", "_")
+  # special case for "Carbon" as it also contains "Graphite" in the name
+  if "Carbon" in elementName:
+    doAssert "," in elementName
+    elementName = "data_element_Carbon_Z_6.csv"
+  var outfile = open(outpath / "data_element_" & elementName & ".csv", fmWrite)
   outfile.write(header)
   for line in tup.data:
     let lineSpl = line.split("\t")

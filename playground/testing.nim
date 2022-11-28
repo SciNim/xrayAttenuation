@@ -9,11 +9,20 @@ Element[77].init().plotAttenuation()
 echo readMolarMasses()
 
 let ar = Argon.init()
-let ρ_Ar = density(1050.mbar.to(Pascal), 293.K, ar.molarMass)
+#let ρ_Ar = density(1050.mbar.to(Pascal), 293.K, ar.molarMass)
+#let ρ_Ar = density((1400 * 0.973).mbar.to(Pascal), 300.K, ar.molarMass)
 ar.plotAttenuation()
-ar.plotTransmission(ρ_Ar, 3.cm.to(m))
+## XXX:: the following with typo `enrgyMin` causes a compiler segfault!
+## ar.plotTransmission(ρ_Ar, 3.cm.to(m), enrgyMin = 5.5, energyMax = 6.5)
+ar.plotTransmission(ρ_Ar, 3.cm.to(m), energyMin = 5.5, energyMax = 6.5)
+block ArgonTrans:
+  let μ_Ar = ar.attenuationCoefficient(5.9.keV)
+  let t = transmission(μ_Ar, ρ_Ar, 3.cm.to(Meter))
+  echo "Trasmission at 5.9 keV = ", t
+
 echo absorptionLength(2.5.keV, numberDensity(ρ_Ar, ar.molarMass),
                       ar.f2eval(2.5.keV))
+echo ar.absorptionLength(ρ_Ar, 2.5.keV)
 
 let au = Gold.init()
 let ρ_Au = 19.32.g•cm⁻³
@@ -24,6 +33,10 @@ let df = au.plotReflectivity(ρ_Au, 0.5.Degree) #, 0.5.Degree)
 let Si₃N₄ = compound((Si, 3), (N, 4))
 Si₃N₄.plotTransmission(3.44.g•cm⁻³, 300.nm.to(Meter))
 
+let mylar = compound((C, 10), (H, 8), (O, 4))
+mylar.plotTransmission(1.4.g•cm⁻³, 2.μm.to(Meter), energyMax = 3.0)
+
+echo Si₃N₄.absorptionLength(3.44.g•cm⁻³, 2.5.keV)
 
 block TestCompareWithHenke:
   let df = toDf({"Energy[keV]" : linspace(0.03, 10.0, 1000)})

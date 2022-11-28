@@ -392,7 +392,10 @@ proc atomicAbsorptionCrossSection*(el: AnyElement, energy: keV): cm² =
 proc attenuationCoefficient*(e: AnyElement, energy: keV): cm²•g⁻¹ =
   ## Computes the attenuation coefficient `μ` for the given element at the
   ## given `energy`
-  result = attenuationCoefficient(energy, e.f2eval(energy), e.molarMass)
+  if energy <= 30.keV:
+    result = attenuationCoefficient(energy, e.f2eval(energy), e.molarMass)
+  else:
+    result = e.μInterp.eval(energy.float).cm²•g⁻¹
 
 proc attenuationCoefficient*(c: Compound, energy: keV): cm²•g⁻¹ =
   ## Computes the attenuation coefficient of a `Compound c` at given `energy`

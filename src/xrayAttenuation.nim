@@ -220,10 +220,16 @@ proc readMolarMasses*(): DataFrame =
     })
 
 proc f1eval*(it: AnyElement, val: keV): float =
-  it.f1.eval(val.float)
+  if val < 0.03.keV:
+    result = 0.0
+  else:
+    result = it.f1.eval(val.float)
 
 proc f2eval*(it: AnyElement, val: keV): float =
-  it.f2.eval(val.float)
+  if val < 0.03.keV:
+    result = 0.0
+  else:
+    result = it.f2.eval(val.float)
 
 proc f0eval*(it: AnyElement, val: keV): Complex[float] =
   ## Compute the `f0(ω)` value, the scattering factor (forward scattering)

@@ -459,25 +459,30 @@ proc plotAttenuation*(element: Element,
     ggtitle(&"Mass attenuation coefficient for: {element.name()} Z = {z}") +
     ggsave(outpath / &"attenuation_{element.name()}.pdf")
 
-proc plotTransmission*[T: AnyCompound](el: T, ρ: g•cm⁻³, length: Meter, outpath = "/tmp") =
+proc plotTransmission*[T: AnyCompound](el: T, ρ: g•cm⁻³, length: Meter,
+                                       energyMin = 0.03,
+                                       energyMax = 10.0,
+                                       outpath = "/tmp") =
   ## Plots the relative transmission of X-rays at different energies for the given
   ## element/compound at the given density.
+  let lengthStr = length.to(μm).pretty(precision = 2, short = true)
+  let densityStr = ρ.pretty(precision = 3, short = true)
   when T is AnyElement:
     var df = el.henkeDf
       .mutate(f{float: "μ" ~ el.attenuationCoefficient(idx("Energy[keV]").keV).float},
               f{float: "Trans" ~ transmission(`μ`.cm²•g⁻¹, ρ, length).float},
               f{float: "Abs" ~ 1.0 - `Trans`})
     let z = Z(el)
-    let title = &"Transmission for: {el.name()} Z = {z}, length = {length}, at ρ = {ρ}"
+    let title = &"Transmission for: {el.name()} Z = {z}, length = {lengthStr}, at ρ = {densityStr}"
   else:
-    let df = toDf({"Energy[keV]" : linspace(0.03, 10.0, 1000)})
+    let df = toDf({"Energy[keV]" : linspace(energyMin, energyMax, 1000)})
       .mutate(f{float: "μ" ~ el.attenuationCoefficient(idx("Energy[keV]").keV).float},
               f{float: "Trans" ~ transmission(`μ`.cm²•g⁻¹, ρ, length).float},
               f{float: "Abs" ~ 1.0 - `Trans`})
-    let title = &"Transmission for: {el.name()} length = {length}, at ρ = {ρ}"
+    let title = &"Transmission for: {el.name()} length = {lengthStr}, at ρ = {densityStr}"
   ggplot(df, aes("Energy[keV]", "Trans")) +
     geom_line() +
-    xlim(0.0, 3.0) +
+    xlim(energyMin, energyMax) +
     xlab("Photon energy [keV]") + ylab("Transmission") +
     ggtitle(title) +
     ggsave(outpath / &"transmission_{el.name()}.pdf", width = 800, height = 480)

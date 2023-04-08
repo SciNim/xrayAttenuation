@@ -44,7 +44,7 @@ type
   FluorescenceLine* = object
     name*: string
     energy*: keV
-    intensity*: float # relative intesity compared to *other lines of the same element*
+    intensity*: float # relative intesity compared to *other lines of the same shell*
 
 iterator pairs(c: Compound): (ElementRT, int) =
   for (el, num) in c.elements:
@@ -591,7 +591,23 @@ proc plotReflectivity*(element: Element, ρ: g•cm⁻³,
   result = df
 
 proc getFluorescenceLines*[E: AnyElement](e: E): seq[FluorescenceLine] =
-  ## Returns the relative intensities of all the fluorescence lines
+  ## Returns the relative intensities of all the fluorescence lines. The intensities
+  ## are given in numbers ``relative to other lines of the same shell``.
+  ##
+  ## E.g. Kα1, Kα2, Kβ1, Kβ2, Kγ1 might have intensities with a maximum of 100,
+  ## but then Lα1, Lα2, ... will again use intensities from 100 (or some other
+  ## value). So normalizations of the relative intensities of different lines
+  ## must be made between the same shell (K, L, M, ...). While the numbers _should_
+  ## have a maximum of 100 for the most intense line, this is *not actually the case*!
+  ## The data is from the X-ray data booklet:
+  ##
+  ## https://xdb.lbl.gov/Section1/Table_1-3.pdf
+  ##
+  ## The relative intensity between K and L lines is typically on the order of
+  ## 10 to 1.
+  ## See for example:
+  ##
+  ## https://xdb.lbl.gov/Section1/Sec_1-3.html
   let dfZ = XrayFluroscenceDf.filter(f{`Z` == e.Z})
   for r in dfZ:
     result.add FluorescenceLine(name: r["Line"].toStr,

@@ -451,9 +451,7 @@ proc attenuationCoefficient*(gm: GasMixture, energy: keV): cm⁻¹ =
   for (g, r) in zip(gm.gases, gm.ratios):
     let pr = gm.pressure * r # partial pressure of this gas
     let ρr = density(pr, gm.temperature, g.molarWeight())
-    echo "Partial pressure: ", pr, " and dens ", ρr
     result += attenuationCoefficient(g, energy) * ρr
-  echo "Att ", result
 
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.

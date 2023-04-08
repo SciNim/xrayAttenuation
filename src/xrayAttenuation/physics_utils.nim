@@ -15,6 +15,7 @@ let R* = N_A * k_B # 8.314.J•K⁻¹•mol⁻¹ the universal Gas constant
 ## as they are used as arguments to procedures, which requires them to be
 ## predefined.
 #defUnit(m², toExport = true)
+defUnit(cm⁻¹, toExport = true)
 defUnit(cm², toExport = true)
 defUnit(m⁻², toExport = true)
 defUnit(cm⁻³, toExport = true)
@@ -27,7 +28,7 @@ defUnit(m⁻³•mol, toExport = true)
 defUnit(m⁻¹, toExport = true)
 defUnit(Joule•Meter, toExport = true)
 
-proc density*(p: Pascal, T: Kelvin, M: g•mol⁻¹): g•cm⁻³ =
+proc density*[P: Pressure](p: P, T: Kelvin, M: g•mol⁻¹): g•cm⁻³ =
   ## Compute the density `ρ` using the ideal gas law based on the given
   ## pressure `P` (use `.to(Pascal)` in the argument if you have a different
   ## unit), temperature `T` and molar mass `M`.

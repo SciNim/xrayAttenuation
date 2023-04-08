@@ -1,3 +1,11 @@
+* v0.1.2
+- add ~FluroscenceLine~ type and CSV file:
+  CSV file contains all known X-ray fluorescence lines and their
+  intensities. Using `getFluorescenceLines` the user can get all lines,
+  their names and their relative intensities (be careful to
+  normalize!).
+- add ~GasMixture~ type and option to compute absorption length and
+  attenuation coefficient for a gas mixture
 * v0.1.1
 - fix attenuation coefficient interpolation from NIST data
 - use NIST attenuation coefficients for > 30 keV for now instead of

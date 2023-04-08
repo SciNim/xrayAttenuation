@@ -35,6 +35,12 @@ type
     elements: seq[NumberElement]
     ρ: g•cm⁻³
 
+  GasMixture* = object
+    temperature*: Kelvin
+    gases*: seq[Compound]
+    ratios*: seq[float] # percentage wise ratios of each gas, i.e. partial pressures from ratio * pressure
+    pressure*: MilliBar
+
   FluorescenceLine* = object
     name*: string
     energy*: keV
@@ -312,6 +318,34 @@ proc initCompound*(name: string): Compound =
   ## Compound straight from a name and fill the `name` field!
   doAssert false, "Parsing of `Formula` names not yet implemented!"
 
+proc initGasMixture*[P: Pressure](
+  T: Kelvin,
+  pressure: P,
+  gases: seq[AnyCompound],
+  ratios: seq[float]
+                                ): GasMixture =
+  var sum = 0.0
+  for r in ratios:
+    sum += r
+  if abs(1.0 - sum) > 1e-3:
+    raise newException(ValueError, "Given gas mixture does not sum to 100% for " &
+      "all contributions: " & $gases)
+  result = GasMixture(temperature: T,
+                      pressure: pressure.to(MilliBar),
+                      ratios: ratios,
+                      gases: gases)
+
+proc initGasMixture*[P: Pressure](
+  T: Kelvin,
+  pressure: P,
+  gases: varargs[(AnyCompound, float)]): GasMixture =
+  var gs = newSeq[Compound]()
+  var ps = newSeq[float]()
+  for (name, p) in gases:
+    gs.add name
+    ps.add p
+  result = initGasMixture(T, pressure, gs, ps)
+
 macro compound*(args: varargs[untyped]): untyped =
   ## Generates a `Compound` from given the given chemical symbols. If a
   ## tuple is given the first field refers to the element and the second to the
@@ -395,7 +429,7 @@ proc atomicAbsorptionCrossSection*(el: AnyElement, energy: keV): cm² =
   result = (2 * r_e * λ * el.f2eval(energy)).to(cm²)
 
 proc attenuationCoefficient*(e: AnyElement, energy: keV): cm²•g⁻¹ =
-  ## Computes the attenuation coefficient `μ` for the given element at the
+  ## Computes the mass attenuation coefficient `μ` for the given element at the
   ## given `energy`
   if energy <= 30.keV:
     result = attenuationCoefficient(energy, e.f2eval(energy), e.molarMass)
@@ -403,18 +437,35 @@ proc attenuationCoefficient*(e: AnyElement, energy: keV): cm²•g⁻¹ =
     result = e.μInterp.eval(energy.float).cm²•g⁻¹
 
 proc attenuationCoefficient*(c: Compound, energy: keV): cm²•g⁻¹ =
-  ## Computes the attenuation coefficient of a `Compound c` at given `energy`
+  ## Computes the mass attenuation coefficient of a `Compound c` at given `energy`
   var factor = N_A / molarWeight(c)
   var sum_σs: cm²
   for el, num in c:
     sum_σs += num.float * el.atomicAbsorptionCrossSection(energy)
   result = factor * sum_σs
 
+proc attenuationCoefficient*(gm: GasMixture, energy: keV): cm⁻¹ =
+  ## Computes the attenuation coefficient (multiplied with the density!)
+  ## for the gas mixture taking into account the partial pressures of each
+  ## gas.
+  for (g, r) in zip(gm.gases, gm.ratios):
+    let pr = gm.pressure * r # partial pressure of this gas
+    let ρr = density(pr, gm.temperature, g.molarWeight())
+    echo "Partial pressure: ", pr, " and dens ", ρr
+    result += attenuationCoefficient(g, energy) * ρr
+  echo "Att ", result
+
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.
   ##
   ## Equivalent to the inverse attenuation cofficient.
   result = (1.0 / (attenuationCoefficient(c, energy) * ρ)).to(Meter)
+
+proc absorptionLength*(gm: GasMixture, energy: keV): Meter =
+  ## Computes the absorption length of the given gas mixture at `energy`.
+  ##
+  ## Equivalent to the inverse attenuation cofficient.
+  result = (1.0 / (attenuationCoefficient(gm, energy))).to(Meter)
 
 proc delta*(e: AnyElement, energy: keV, ρ: g•cm⁻³): float =
   ## Computes the `delta` of the element at `energy` and density `ρ`

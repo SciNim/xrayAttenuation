@@ -35,6 +35,10 @@ type
     elements: seq[NumberElement]
     ρ: g•cm⁻³
 
+  FluorescenceLine* = object
+    name*: string
+    energy*: keV
+    intensity*: float # relative intesity compared to *other lines of the same element*
 
 iterator pairs(c: Compound): (ElementRT, int) =
   for (el, num) in c.elements:
@@ -52,6 +56,7 @@ const ElementSeq = CacheSeq"ElementSeq"
 ## only read it when necessary (to look up compound densities)
 let CompoundDensityDf = readCsv(Resources / "density_common_materials.csv",
                                 sep = ',', header = "#")
+let XrayFluroscenceDf = readCsv(Resources / "xray_line_intensities.csv")
 proc readMolarMasses*(): DataFrame
 let MolarMassDf = readMolarMasses()
 
@@ -535,6 +540,14 @@ proc plotReflectivity*(element: Element, ρ: g•cm⁻³,
     ggsave(outpath / &"reflectivity_{element.name()}.pdf", width = 800, height = 480)
 
   result = df
+
+proc getFluorescenceLines*[E: AnyElement](e: E): seq[FluorescenceLine] =
+  ## Returns the relative intensities of all the fluorescence lines
+  let dfZ = XrayFluroscenceDf.filter(f{`Z` == e.Z})
+  for r in dfZ:
+    result.add FluorescenceLine(name: r["Line"].toStr,
+                                energy: r["Energy [eV]"].toFloat.eV.to(keV),
+                                intensity: r["Intensity"].toFloat)
 
 when false:
   # NOTE: These will become the basis for what is already done in `plotTransmission`

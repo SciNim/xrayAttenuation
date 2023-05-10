@@ -405,8 +405,17 @@ proc `$`*(c: Compound): string =
     else:
       result.add $el.chemSym & $num
 
-proc name*(c: Compound): string = $c
+proc pretty*(gm: GasMixture, showPrefix: bool): string =
+  if showPrefix:
+    result = "GasMixture: "
+  for i, x in gm.gases:
+    result.add &"{x} ({gm.ratios[i]:.3f})"
+    if i < gm.gases.len:
+      result.add ", "
+  result.add &"(T = {gm.temperature}, P = {gm.pressure})"
+proc `$`*(gm: GasMixture): string = pretty(gm, true)
 
+proc name*(c: Compound): string = $c
 
 ################################
 ## Physics related procedures ##

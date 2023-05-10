@@ -1,3 +1,59 @@
+import unittest
+import datamancer
+
+## A few simple tests
+
+suite "Basic physics utility procs":
+  test "density":
+    let Ar = Argon.init()
+    #check density(1050.mbar.to(Pa), 293.15.K, Ar.molarMass) ==
+
+  test "number density":
+    let ρ = 1.g•cm⁻³
+    #check numberDensity(ρ, M) ==
+
+  test "wavelength":
+    discard
+    #check wavelength(1.keV) ==
+    #check wavelength(5.keV) ==
+    #check wavelength(10.keV) ==
+
+  test "atomic absorption cross section":
+    discard
+    #check atomicAbsorptionCrossSection(1.keV,
+
+  test "attenuation coefficient":
+    #check attenuationCoefficient(1.keV, f2, M) =
+    discard
+
+  test "transmission":
+    discard
+    #check transmission(μ, ρ, length) ==
+
+  test "absorption length":
+    discard
+    #check absorptionLength(energy, n_a, f2) ==
+
+  test "delta":
+    discard
+    #check delta(energy, n_a, f1) ==
+
+  test "beta":
+    discard
+    #check beta(energy, n_a, f1) ==
+
+  test "refractive index":
+    discard
+    #check refractiveIndex*(energy, n_a, f0) ==
+
+  test "wave number":
+    discard
+    #check waveNumber(energy, θ) ==
+
+  test "reflectivity":
+    discard
+    # check reflectivity(θ, energy, n, σ) ==
+
 # import unittest
 
 import xrayAttenuation, ggplotnim, unchained

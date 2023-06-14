@@ -462,6 +462,12 @@ proc attenuationCoefficient*(gm: GasMixture, energy: keV): cm⁻¹ =
     let ρr = density(pr, gm.temperature, g.molarWeight())
     result += attenuationCoefficient(g, energy) * ρr
 
+proc transmission*[L: Length, D: Density](c: AnyCompound, ρ: D, length: L, E: keV): float =
+  ## Computes the transmission using the Beer-Lambert law of photons of energy `E`
+  ## through the given compound with density `ρ` and `length`.
+  let μ = c.attenuationCoefficient(E) # attenuation coefficient of the compound
+  result = transmission(μ, ρ.to(g•cm⁻³), length.to(Meter))
+
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.
   ##

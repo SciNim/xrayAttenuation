@@ -53,6 +53,7 @@ iterator pairs(c: Compound): (ElementRT, int) =
 const Resources = currentSourcePath().parentDir().parentDir() / "resources"
 const NIST = "nist_mass_attenuation"
 const Henke = "henke_form_factors"
+const NIST_scattering_factors = "nist_form_factors"
 const ElementTable = CacheTable"Elements"
 const ElementSymbolTable = CacheTable"ElementSymbols"
 const ElementChemToNameTable = CacheTable"ElementChemToName"
@@ -207,18 +208,22 @@ proc readNistData(element: var AnyElement) =
     .mutate(f{float: "Energy[keV]" ~ idx("Energy[MeV]").MeV.to(keV).float})
 
 proc readHenkeData(element: var AnyElement) =
-  let path = Resources / Henke / element.chemSym.toLowerAscii() & ".nff"
-  echo path
-  # first try with spaces (almost all files)
-  try:
-    element.henkeDf = readCsv(path, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
-      .rename(f{"Energy[eV]" <- "Energy"})
-      .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
-  except IOError:
-    # try with tab
-    element.henkeDf = readCsv(path, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
-      .rename(f{"Energy[eV]" <- "Energy"})
-      .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
+  let pathHenke = Resources / Henke / element.chemSym.toLowerAscii() & ".nff"
+  let pathNist = Resources / NIST_scattering_factors / element.chemSym.toLowerAscii() & ".nff"
+  try: # first try NIST
+    ## XXX: Once we download NIST files ourselves, the columns will change!
+    element.henkeDf = readCsv(pathNist, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+      .rename(f{"Energy[keV]" <- "Energy"})
+  except OSError:
+     try: # first try with spaces (almost all files)
+       element.henkeDf = readCsv(pathHenke, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+         .rename(f{"Energy[eV]" <- "Energy"})
+         .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
+     except IOError:
+       # try with tab
+       element.henkeDf = readCsv(pathHenke, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+         .rename(f{"Energy[eV]" <- "Energy"})
+         .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
 
 proc readMolarMasses*(): DataFrame =
   result = readCsv(Resources / "molar_masses.csv", sep = ' ')

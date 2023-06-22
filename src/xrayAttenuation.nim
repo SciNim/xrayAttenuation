@@ -505,6 +505,38 @@ proc refractiveIndex*(e: AnyElement, energy: keV, ρ: g•cm⁻³): Complex[floa
   let f0 = e.f0eval(energy)
   result = refractiveIndex(energy, numberDensity(ρ, e.molarMass), f0)
 
+proc refractiveIndex*(c: Compound, energy: keV, ρ: g•cm⁻³): Complex[float] =
+  ## Computes the refractive index for the given element at `energy` and density `ρ`.
+  ##
+  ##  `n(ω) = 1 - r_e λ² / 2π Σ_i n_ai fi(0)`
+  ##  `     = 1 - (β + iδ)`
+  ##
+  ## Computes the second term for each species in the compound first, then
+  ## returns `n`.
+  ##
+  ## We compute it by adding the `(β + iδ)` terms for each element in the compound
+  ## weighted by the fractional number density, i.e.
+  ## `n_i = n_a * n_atoms * x_i * m_i / M`
+  ## where `n_a` is the total number density in *molecules* for this compound,
+  ## `n_atoms` the number of atoms in the compound, `x_i` the number of atoms
+  ## for the element `i`, `m_i` the molar mass of that element and `M` the total
+  ## molar weight of the compound (sum of all molar masses * number of each atoms).
+  ##
+  ## Important note: This refractive index is of course only valid in the X-ray
+  ## regime, because there we do not have to consider the properties of the
+  ## molecular and atomic interactions having an effect on the much longer wavelength
+  ## in case of visible light.
+  var sumβδ = complex(0.0, 0.0)
+  let numAtoms = numAtoms(c) # total number of atoms in the molecule
+  for el, num in c:
+    let f0 = el.f0eval(energy) # f0 of this element
+    let n_a = numberDensity(ρ, molarWeight(c)) # number density of the molecule
+    let fraction = el.molarMass * num / molarWeight(c) # fraction of particles of this type
+    let n_i = n_a * numAtoms * fraction
+    let n = refractiveIndex(energy, n_i, f0) # refractive index contribution of this element
+    sumβδ += (1.0 - n) # correct `1 - (β + iδ)` computed in `refractiveIndex` to get `β + iδ`.
+  result = 1.0 - sumβδ # compute back `n` from `1 - (β + iδ)`.
+
 proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter): float =
   ## Computes the reflectivity of the given element `e` at the boundary of vacuum to
   ## a flat surface of `e` at the given `energy` and density `ρ`. `σ` is the surface

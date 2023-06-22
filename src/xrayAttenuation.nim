@@ -261,6 +261,8 @@ proc name*(e: AnyElement | typedesc[AnyElement]): string =
   result = $typeof(e)
   if result.startsWith("Element["):
     result = $lookupInverseName(e)
+  elif result.startsWith("ElementRT"):
+    result = $e.chemSym
 
 proc Z*(e: AnyElement): int =
   ## Return the proton number of the given element. This is just the static

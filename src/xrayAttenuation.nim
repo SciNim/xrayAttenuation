@@ -436,6 +436,11 @@ proc molarWeight*(c: Compound): g•mol⁻¹ =
   for el, num in c:
     result += el.molarMass * num.float
 
+proc numAtoms*(c: Compound): int =
+  ## Returns the number of atoms in the compound
+  for _, num in c:
+    inc result, num
+
 proc atomicAbsorptionCrossSection*(el: AnyElement, energy: keV): cm² =
   ## Computes the atomic absoprtion cross section `σ_a` based on the scattering factor `f2`
   ## via

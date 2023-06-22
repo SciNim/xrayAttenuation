@@ -43,6 +43,10 @@ proc wavelength*(energy: keV): Meter =
   ## Compute the wavelength of the X-ray with the given `energy`.
   result = (hp * c / energy).to(Meter)
 
+proc energy*[L: Length](λ: L): keV =
+  ## Compute the wavelength of the X-ray with the given `energy`.
+  result = (hp * c / λ).to(keV)
+
 proc atomicAbsorptionCrossSection*(energy: keV, f2: UnitLess): cm² =
   ## Computes the atomic absoprtion cross section `σ_a` based on the scattering factor `f2`
   ## via

@@ -129,7 +129,7 @@ proc refractiveIndex*(energy: keV, n_a: cm⁻³, f0: Complex[float]): Complex[fl
   ##
   ## NOTE: currently only for single elements
   let λ = wavelength(energy)
-  result = 1.0 - (r_e * λ * λ / (2 * π) * n_a).float * f0
+  result = 1.0 - (n_a * r_e * λ*λ / (2 * π) ) * f0
 
 proc waveNumber*(energy: keV, θ: Degree): m⁻¹ =
   ## Computes the wave number `k` for an incoming wave with `energy`

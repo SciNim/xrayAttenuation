@@ -537,16 +537,26 @@ proc refractiveIndex*(c: Compound, energy: keV, ρ: g•cm⁻³): Complex[float]
     sumβδ += (1.0 - n) # correct `1 - (β + iδ)` computed in `refractiveIndex` to get `β + iδ`.
   result = 1.0 - sumβδ # compute back `n` from `1 - (β + iδ)`.
 
-proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter): float =
+proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter
+                   parallel: bool): float =
   ## Computes the reflectivity of the given element `e` at the boundary of vacuum to
-  ## a flat surface of `e` at the given `energy` and density `ρ`. `σ` is the surface
-  ## roughness and is the deviation from a perfectly smooth surface, approximated by
-  ## use of the Névot–Croce factor:
+  ## a flat surface of `e` at the given `energy` and density `ρ`.
+  ##
+  ## Computed for `p` polarization if `parallel = true`, else `s`-pol.
+  ##
+  ## `σ` is the surface roughness and is the deviation from a perfectly smooth surface,
+  ## approximated by use of the Névot–Croce factor:
   ##  `exp(-2 k_iz k_jz σ²)`
   ## where `k_iz`, `k_jz` are the wave vectors perpendicular to the surface in the medium
   ## before and after the interface between them.
   let n = e.refractiveIndex(energy, ρ)
+  result = reflectivity(θ, energy, n, σ, parallel = parallel)
+
+proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter): float =
+  ## Overload of the above, which computes it for unpolarized light.
+  let n = e.refractiveIndex(energy, ρ)
   result = reflectivity(θ, energy, n, σ)
+
 
 ################################
 ## Plotting related procs ######

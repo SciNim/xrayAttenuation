@@ -621,16 +621,23 @@ proc plotReflectivity*(element: Element, ρ: g•cm⁻³,
   var ns = newSeq[Complex[float]](df.len)
   var δs = newSeq[float](df.len)
   var βs = newSeq[float](df.len)
-  var Rs = newSeq[float](df.len)
+  var R = newSeq[float](df.len) # unpolarized
+  var Rs = newSeq[float](df.len) # s-pol
+  var Rp = newSeq[float](df.len) # p-pol
   let E = df["Energy[keV]", float]
+
   for i in 0 ..< df.len:
     δs[i] = element.delta(E[i].keV, ρ)
     βs[i] = element.beta(E[i].keV, ρ)
     let n = complex((1 - δs[i]), βs[i])
     ns[i] = element.refractiveIndex(E[i].keV, ρ)
-    Rs[i] = element.reflectivity(E[i].keV, ρ, θ, σ)
+    R[i] = element.reflectivity(E[i].keV, ρ, θ, σ)
+    Rs[i] = element.reflectivity(E[i].keV, ρ, θ, σ, parallel = false)
+    Rp[i] = element.reflectivity(E[i].keV, ρ, θ, σ, parallel = true)
   df["n"] = ns.mapIt(it.abs)
+  df["R"] = Rs
   df["Rs"] = Rs
+  df["Rp"] = Rp
   df["δs"] = δs
   df["βs"] = βs
 
@@ -650,8 +657,10 @@ proc plotReflectivity*(element: Element, ρ: g•cm⁻³,
     ggtitle(&"δ, β for: {element.name()} Z = {z}, angle = {θ}, at ρ = {ρ}") +
     ggsave(outpath / &"delta_beta_index_{element.name()}.pdf", width = 800, height = 480)
 
-  ggplot(df, aes("Energy[keV]", "Rs")) +
+  ggplot(df, aes("Energy[keV]", "R")) +
     geom_line() +
+    geom_line(aes = aes(y = "Rs"), color = "yellow") +
+    geom_line(aes = aes(y = "Rp"), color = "red") +
     #xlim(0.0, 10) +
     xlab("Photon energy [keV]") + ylab("Refractive index (absolute value)") +
     ggtitle(&"Reflectivity for: {element.name()} Z = {z}, angle = {θ}, σ = {σ}, at ρ = {ρ}") +

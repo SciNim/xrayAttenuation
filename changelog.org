@@ -1,3 +1,11 @@
+* v0.2.0
+- add ~refractedAngle~, ~refractedAngleSin~ to get refracted angle
+  after an interface (and the ~sin(θ_j)~ in the latter case)
+- add ~energy~ to convert a wavelength back to an energy
+- add support for depth graded multilayer reflections, i.e. like the
+  LLNL telescope (NuSTAR optic)
+- improve ~reflectivity~ implementation
+- allow calculation of refractive indices for compounds  
 * v0.1.3
 - add ~transmission~ overload for convenience taking a compound,
   density, length and energy

@@ -151,12 +151,37 @@ proc reflectivity*(θ: Degree, energy: keV, n: Complex[float], σ: Meter): float
   let kp = sqrt( (k*k).float * n*n - kθ*kθ )
   result = abs2( (km - kp) / (km + kp) )
 
-proc rij_s*(ni, nj: float, θ: Degree): float =
-  let niS = ni * sin(θ.to(Radian))
-  let njS = nj * sin(θ.to(Radian))
-  result = (niS - njS) / (niS + njS)
+proc refractedAngle*(θi: Degree, n_i, n_j: Complex[float]): Complex[float] =
+  ## Given the incidence angle `θi` returns the refracted angle according
+  ## to Snell's law for the materials with refractive indices `n_i` and `n_j`
+  ##
+  ## `n_i sin(θ_i) = n_j sin(θ_j)`
+  ## ⇒ `θ_j = arcsin(n_i sin(θ_i) / n_j)`
+  ##
+  ## `IMPORTANT`: The incident angle in this formulation is measured from the
+  ## normal of the interface! For grazing angles we typically measure from the
+  ## interface, so convert `90.° - θi` before calling!
+  ##
+  ## `IMPORTANT 2`: This procedure is unsafe in the contexts of total reflection,
+  ## i.e. for grazing angles if the `n_i > n_j` (vacuum to metal in X-ray regime
+  ## or glass to vacuum in visible light for example).
+  result = arcsin(n_i * sin(θ_i.to(Radian)) / n_j)
 
-#proc refR*(
+proc refractedAngleSin*(θi: Degree, n_i, n_j: Complex[float]): Complex[float] =
+  ## Given the incidence angle `θi` returns the sine of the refracted angle according
+  ## to Snell's law for the materials with refractive indices `n_i` and `n_j`
+  ##
+  ## `n_i sin(θ_i) = n_j sin(θ_j)`
+  ## ⇒ `sin(θ_j) = n_i sin(θ_i) / n_j`
+  ##
+  ## `IMPORTANT`: The incident angle in this formulation is measured from the
+  ## normal of the interface! For grazing angles we typically measure from the
+  ## interface, so convert `90.° - θi` before calling!
+  result = n_i * sin(θ_i.to(Radian)) / n_j
+
+proc refractedAngleSin*(sinθi: Complex[float], n_i, n_j: Complex[float]): Complex[float] =
+  ## Version of the above if `sin(θ_i)` is already given as complex number.
+  result = n_i * sinθi / n_j
 
 proc scatteringPotential(ρ: cm⁻³): m⁻² =
   result = (4*π * r_e * ρ).to(Meter⁻²)

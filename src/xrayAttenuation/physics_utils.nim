@@ -277,3 +277,80 @@ proc reflectivityAlt*(θ: Degree, energy: keV, n: Complex[float], σ: Meter): fl
   let km = sqrt( k*k - kθ*kθ )
   let kp = sqrt( (k*k).float * n*n - kθ*kθ )
   result = abs2( (km - kp) / (km + kp) )
+
+proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]], ds: seq[nm],
+                             parallel: bool): float =
+  ## Incoming angle from interface `θ_i`.
+  ##
+  ## Multilayer consisting of the refractive indices given by `ns` where
+  ## `ns[0]` is the ambient medium (likely air or vacuum), `ns[^1]` is the
+  ## substrate medium and the rest are the actual interfaces that should
+  ## produce reflection.
+  ## `ds` are the thicknesses of the different layers. Note that
+  ## `ds.len == ns.len - 2`.
+  ##
+  ## Computes it recursively by
+  ## ```
+  ##        r_ij + r_j exp(2 i β_i)
+  ## r_i = -------------------------
+  ##       1 + r_ij r_j exp(2 i β_i)
+  ## ```
+  ## with
+  ##
+  ## `β_i = 2*π * d_i * cos(θ_i) / λ` (`θ_i` from normal axis!)
+  ##
+  ## and
+  ##
+  ## r_ij computed via `reflectivity`
+  ## (TODO: perform surface roughness correction in `reflectivity`)
+  ##
+  ## `r_i` is computed for s- and p polarizations separately!
+
+  if ns.len < 3:
+    raise newException(ValueError, "Need at least 3 input refraction indices. One for the ambient, " &
+      "one for the substrate and one or more for the layers to reflect on.")
+  if ds.len != ns.len - 2:
+    raise newException(ValueError, "Need thicknesess for each layer, i.e. 2 less than number of " &
+      "refractive indices. Got: " & $ds & " for number of refractive indices: " & $ns.len)
+
+  proc beta(sinθ_i, n_i: Complex[float], d_i, λ: nm): Complex[float] =
+    ## Given layer thickness `d_i` and wavelength `λ` and incidence angle
+    ## `θ_i` (from normal and not from interface!), compute the parameter
+    ## `β_i`.
+    ##
+    ## Note: merged factor `2` from `exp(2 i β_i)` into definition of `β_i`
+    let cθi = sqrt(1.0 - sinθ_i*sinθ_i)
+    let d_by_λ = d_i / λ
+    result = 4*π * d_by_λ * n_i * cθi
+
+  # 1. convert incident angle to normal of interface and take `sin`
+  ## NOTE: angles are actually the sin(θ) and a complex number! This is to deal with cases
+  ## correctly in which grazing angle so small as the produce total reflection where Snell's law
+  ## is not valid for real numbers.
+  var θn_i = complex(sin((90.° - θ_i).to(Radian)), 0.0) # incidence to normal angle, start from incidence to material
+  let sθn_0 = θn_i
+
+  let λ = wavelength(energy)
+  ## NOTE: We can compute the refracted angle for any layer based on the 0-th layer, because
+  ## `n_i · sin(θ_i) = n_j · sin(θ_j) = n_k · sin(θ_k)`
+  # 2. compute incident angle to substrate, i.e.
+  # = equal to refracted angle of layer _before_ substrate
+  let sθ_last = refractedAngleSin(sθn_0, ns[0], ns[^2])
+  # 3. refracted angle in substrate
+  let sθ_substrate = refractedAngle(sθn_0, ns[0], ns[^1])
+  # 4. compute `r_j` (= reflectivity) of the substrate
+  var r_j = reflectivity(sθ_last, ns[^2], sθ_substrate, ns[^1], energy, 0.0.m, parallel = parallel)
+  # 5. loop back from layer _above_ substrate to first layer. `ns` has `N + 2`
+  # elements (ns[0] = vacuum / ambient, `ns[^1]` substrate), i.e. loop all medium
+  # layers from bottom up.
+  for i in countdown(ns.high - 1, 1):
+    # 1. compute `β_i`. Need incidence angle of current layer `i` and refractive index
+    let sθi = ns[0] * sθn_0 / ns[i]
+    let β_i = beta(sθi, ns[i], ds[i-1], λ.to(NanoMeter))
+    # 2. compute `r_ij`
+    let angl = ns[0] * sθn_0 / ns[i-1]
+    let r_ij = reflectivity(angl, ns[i-1], sθi, ns[i], energy, 0.0.m, parallel = parallel)
+    # 3. assemble `r_j`
+    r_j = (r_ij + r_j * exp(im(1.0) * β_i)) / (1.0 + r_ij * r_j * exp(im(1.0) * β_i))
+  # 4. once we are at the end of the loop, the last `r_j` is our final reflectivity
+  result = abs2(r_j)

@@ -186,19 +186,96 @@ proc refractedAngleSin*(sinθi: Complex[float], n_i, n_j: Complex[float]): Compl
 proc scatteringPotential(ρ: cm⁻³): m⁻² =
   result = (4*π * r_e * ρ).to(Meter⁻²)
 
-proc reflectivity*(θ: Degree, ρ: cm⁻³, energy: keV, n: Complex[float], σ: Meter): float =
-  ## `σ`: surface roughness
-  let λ = wavelength(energy)
+proc reflectivity*(sinθn_i, n_i, sinθn_j, n_j: Complex[float], energy: keV, σ: Meter,
+                   parallel: bool): Complex[float] =
+  ## Computes the actual reflectvity given incidence and refracted angles as the
+  ## `sin(θ)` and the refractive indices. The angles are given from the normal
+  ## of the interface.
+  ##
+  ## If `parallel` is `true` computes the reflectivtiy for `p` polarization, else
+  ## for `s` pol.
+  ##
+  ## `σ` is the surface roughness.
+  ##
+  ## TODO: IMPLEMENT `σ` correction!
+  ##
+  ## The calculation is done using the Fresnell equations, which relate the
+  ## refractive indices and the incident / outgoing angles to the reflectivity
+  ## and transmission.
+  ## To use these equations for grazing angles for X-rays (in which the real part
+  ## of the refracted angle is often < 1), it is important to keep the angles
+  ## as the `sin(θ)` to avoid having to compute `arcsin( <expr> )`, which may
+  ## be undefined.
+  ##
+  ## For a directly applicable treatment of the math required for this, see
+  ##
+  ## `David L. Windt, 1998 - IMD - Software for modeling the optical properties of multilayer films`
+  ##
+  ## Fresnell equations:
+  ##
+  ## s-polarization:
+  ##
+  ## `         n_i · cos(θ_i) - n_j · cos(θ_j)`
+  ## `r^s_ij = ------------------------------ `
+  ## `         n_i · cos(θ_i) + n_j · cos(θ_j)`
+  ##
+  ## p-polarization:
+  ##
+  ## `         n_i · cos(θ_j) - n_j · cos(θ_i)`
+  ## `r^p_ij = ------------------------------ `
+  ## `         n_i · cos(θ_j) + n_j · cos(θ_i)`
+  ##
+  ## where `θ_i`, `θ_j` are the incident, refracted angles and `n_i`, `n_j` the
+  ## refractive indices on the incident / outgoing side.
+  ##
+  ## Given that we have to use the `sin(θ)` to express angles, we use the identity
+  ##
+  ## `sin²(x) + cos²(x) = 1`
+  ##
+  ## to express the `cos(θ)` as `√(1 - sin²(θ))` for the equation.
+  let cθi = sqrt(1.0 - sinθn_i*sinθn_i)
+  let cθj = sqrt(1.0 - sinθn_j*sinθn_j)
+  if parallel:
+    result = (n_i * cθj - n_j * cθi) / (n_i * cθj + n_j * cθi)
+  else:
+    result = (n_i * cθi - n_j * cθj) / (n_i * cθi + n_j * cθj)
 
-  let sθ = sin(θ.to(Radian))
-  let sθp = sqrt( sθ*sθ - (1.0 - n)^2 ) / (n^2)
+proc reflectivity*(θ_i: Degree, energy: keV, n_j: Complex[float], σ: Meter,
+                   parallel: bool): float =
+  ## Computes the reflectivity of the grazing angle `θ_i` (from the interface) given
+  ## the medium `n_j`. The medium on the incident side is assumed to be vacuum.
+  ##
+  ## To compute the reflectivity more generally with other media, use the
+  ## version above which takes the sine of angles from the normal of the interface.
+  ##
+  ## If `parallel` is `true` computes the reflectivtiy for `p` polarization, else
+  ## for `s` pol.
+  ##
+  ## `σ` is the surface roughness.
+  ##
+  ## (TODO: perform surface roughness correction via
+  ##
+  ## `r'_ij = r_ij * exp(- s_i² σ² / 2)`
+  ##
+  ## with `s_i`
+  ##
+  ## `s_i = 4π cos(θ_i) / λ`
+  let θn_i = 90.° - θ_i # incidence angle to normal vector
+  let sinθn_i = complex(sin(θn_i.to(Radian)), 0.0)
+  let n_i = complex(1.0, 0.0) ## Vacuum refractive index
+  let sinθn_j = refractedAngleSin(sinθn_i, n_i, n_j)
+  let r = reflectivity(sinθn_i, n_i, sinθn_j, n_j, energy, σ, parallel)
+  result = abs2(r)
 
-  let k = waveNumber(energy, θ).float
-  let kθ = k * cos(θ.to(Radian))
-  #let ks = n * k * sθp
-  #let ks = sqrt( k*k - scatteringPotential(ρ).float )#k*k * sθ*sθ - k*k * (1.0 - n)*(1.0 - n) )
-  #result = abs( (k - ks) / (k + ks) )^2
-  #result = abs2((sθ - n * sθp) / (sθ + n * sθp))
+proc reflectivity*(θ_i: Degree, energy: keV, n_j: Complex[float], σ: Meter): float =
+  ## Overload of the above, which assumes the incoming light is unpolarized, i.e.
+  ## returns the average of the s- and p-polarizations:
+  ##
+  ## `R = 1/2 (|r_s|² + |r_p|²)`
+  let r_s = reflectivity(θ_i, energy, n_j, σ, parallel = false)
+  let r_p = reflectivity(θ_i, energy, n_j, σ, parallel = true)
+  result = 0.5 * (r_s + r_p)
+
 
 
   ## XXX: THIS FINALLY WORKS. Well, almost. The numbers are a bit too small.

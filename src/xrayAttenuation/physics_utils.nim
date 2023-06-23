@@ -136,21 +136,6 @@ proc waveNumber*(energy: keV, θ: Degree): m⁻¹ =
   ## and incident angle `θ` (measured from surface).
   result = 2*π * sin(θ.to(Radian)) / wavelength(energy)
 
-proc reflectivity*(θ: Degree, energy: keV, n: Complex[float], σ: Meter): float =
-  ## Computes the reflectivty `R = |r²|` for the X-ray at the given `energy`
-  ##
-  ## `σ`: surface roughness
-  ##
-  ## TODO: understand why other equation doesn't work, check that surface roughness
-  ## correction works as expected (and implement it using this approach)
-  ## `R = |r_0 exp(-2 k_i k_z σ²)|²`
-  let k = waveNumber(energy, θ).float
-  let kθ = k * cos(θ.to(Radian))
-
-  let km = sqrt( k*k - kθ*kθ )
-  let kp = sqrt( (k*k).float * n*n - kθ*kθ )
-  result = abs2( (km - kp) / (km + kp) )
-
 proc refractedAngle*(θi: Degree, n_i, n_j: Complex[float]): Complex[float] =
   ## Given the incidence angle `θi` returns the refracted angle according
   ## to Snell's law for the materials with refractive indices `n_i` and `n_j`
@@ -276,17 +261,19 @@ proc reflectivity*(θ_i: Degree, energy: keV, n_j: Complex[float], σ: Meter): f
   let r_p = reflectivity(θ_i, energy, n_j, σ, parallel = true)
   result = 0.5 * (r_s + r_p)
 
+proc reflectivityAlt*(θ: Degree, energy: keV, n: Complex[float], σ: Meter): float =
+  ## Alternative implementation via the wavenumber of the reflectivity.
+  ##
+  ## Computes the reflectivty `R = |r²|` for the X-ray at the given `energy`
+  ##
+  ## `σ`: surface roughness
+  ##
+  ## TODO: understand why other equation doesn't work, check that surface roughness
+  ## correction works as expected (and implement it using this approach)
+  ## `R = |r_0 exp(-2 k_i k_z σ²)|²`
+  let k = waveNumber(energy, θ).float
+  let kθ = k * cos(θ.to(Radian))
 
-
-  ## XXX: THIS FINALLY WORKS. Well, almost. The numbers are a bit too small.
-  # figure out what's wrong with the other ones. Take pen and paper.
   let km = sqrt( k*k - kθ*kθ )
   let kp = sqrt( (k*k).float * n*n - kθ*kθ )
-  result = abs2( (km - kp) / (km + kp) )  # dumb
-  when false:
-    let cθ = cos(θ.to(Radian))
-    let k_iz = (2*π / λ * cθ).float
-    let k_tz = (2*π / λ).float * sqrt( n*n - cθ*cθ ) #sqrt( n*n - cθ*cθ ) #sqrt( n*n - cθ*cθ ) #complex(- cθ*cθ, 0.0) )
-    echo "kiz = ", kiz, " ktz = ", ktz, " from ", abs2(n), " c^2(θ) = ", cθ * cθ
-    let r0 = abs2( (k_iz - k_tz) / (k_iz + k_tz) )
-    result = r0 # * r0 #abs2(r0 * exp(- 2 * k_iz * k_tz * (σ^2).float ))
+  result = abs2( (km - kp) / (km + kp) )

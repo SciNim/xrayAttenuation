@@ -9,7 +9,7 @@ import unchained, math, complex
 ## Note: the naming of the procedures in here is verbose for clarity.
 ## More common abbreviations may be added as templates in the future.
 
-let R* = N_A * k_B # 8.314.J•K⁻¹•mol⁻¹ the universal Gas constant
+const R* = N_A * k_B # 8.314.J•K⁻¹•mol⁻¹ the universal Gas constant
 
 ## A bunch of units we use in this library. They have to be defined here,
 ## as they are used as arguments to procedures, which requires them to be

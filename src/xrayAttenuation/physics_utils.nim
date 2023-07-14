@@ -354,3 +354,34 @@ proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]],
     r_j = (r_ij + r_j * exp(im(1.0) * β_i)) / (1.0 + r_ij * r_j * exp(im(1.0) * β_i))
   # 4. once we are at the end of the loop, the last `r_j` is our final reflectivity
   result = abs2(r_j)
+
+proc depthGradedLayers*(d_min, d_max: NanoMeter, N: int, c: float): seq[NanoMeter] =
+  ## Computes the thickness of all layers in a depth graded multilayer, i.e.
+  ## the kind of multilayer coating where multiple repetitions of the material
+  ## are repeated with varying (increasing) thicknesses.
+  ## These are typically used to coat X-ray telescope to achieve a better
+  ## transmission over a wider range of energies and angles.
+  ##
+  ## A depth-graded multilayer is described by the equation:
+  ## \[
+  ## d_i = \frac{a}{(b + i)^c}
+  ## \]
+  ## where $d_i$ is the depth of layer $i$ (out of $N$ layers),
+  ## \[
+  ## a = d_{\text{min}} (b + N)^c
+  ## \]
+  ## and
+  ## \[
+  ## b = \frac{1 - N k}{k - 1}
+  ## \]
+  ## with
+  ## \[
+  ## k = \left(\frac{d_{\text{min}}}{d_{\text{max}}}\right)^{\frac{1}{c}}
+  ## \]
+  ## where $d_{\text{min}}$ and $d_{\text{max}}$ are the thickness of the
+  ## bottom and top most layers, respectively.
+  for i in 1 .. N:
+    let k = pow(d_min / d_max, 1.0 / c.float)
+    let b = (1.0 - N * k) / (k - 1.0)
+    let a = d_min * pow(b + N, c)
+    result.add a / pow(b + i.float, c)

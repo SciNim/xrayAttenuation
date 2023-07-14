@@ -337,7 +337,7 @@ proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]],
   # = equal to refracted angle of layer _before_ substrate
   let sθ_last = refractedAngleSin(sθn_0, ns[0], ns[^2])
   # 3. refracted angle in substrate
-  let sθ_substrate = refractedAngle(sθn_0, ns[0], ns[^1])
+  let sθ_substrate = refractedAngleSin(sθn_0, ns[0], ns[^1])
   # 4. compute `r_j` (= reflectivity) of the substrate
   var r_j = reflectivity(sθ_last, ns[^2], sθ_substrate, ns[^1], energy, 0.0.m, parallel = parallel)
   # 5. loop back from layer _above_ substrate to first layer. `ns` has `N + 2`

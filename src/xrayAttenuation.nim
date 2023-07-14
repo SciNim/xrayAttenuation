@@ -537,7 +537,7 @@ proc refractiveIndex*(c: Compound, energy: keV, ρ: g•cm⁻³): Complex[float]
     sumβδ += (1.0 - n) # correct `1 - (β + iδ)` computed in `refractiveIndex` to get `β + iδ`.
   result = 1.0 - sumβδ # compute back `n` from `1 - (β + iδ)`.
 
-proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter
+proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter,
                    parallel: bool): float =
   ## Computes the reflectivity of the given element `e` at the boundary of vacuum to
   ## a flat surface of `e` at the given `energy` and density `ρ`.

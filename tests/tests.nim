@@ -1,7 +1,17 @@
-import unittest
-import datamancer
+import std / [unittest, math]
+import ../src/xrayAttenuation
+
+import ggplotnim except almostEqual
+import unchained
 
 ## A few simple tests
+
+proc `=~=`[T: not seq](x, y: T): bool = almostEqual(x.float, y.float, epsilon = 3)
+proc `=~=`[T](x, y: seq[T]): bool =
+  check x.len == y.len
+  result = true
+  for i in 0 ..< x.len:
+    result = result and x[i] =~= y[i]
 
 suite "Basic physics utility procs":
   test "density":
@@ -54,10 +64,13 @@ suite "Basic physics utility procs":
     discard
     # check reflectivity(θ, energy, n, σ) ==
 
-# import unittest
-
-import xrayAttenuation, ggplotnim, unchained
-
+  test "Depth graded multilayers":
+    ## The following are the depth graded values for the LLNL telescope
+    ## following a NuSTAR designed for the CAST experiment.
+    check depthGradedLayers(d_min = 11.5.nm, d_max = 22.5.nm, N = 2, c = 1.0) =~= @[22.5.nm, 11.5.nm]
+    check depthGradedLayers(d_min = 7.0.nm, d_max = 19.0.nm, N = 3, c = 1.0)  =~= @[19.nm, 10.2308.nm, 7.nm]
+    check depthGradedLayers(d_min = 5.5.nm, d_max = 16.0.nm, N = 4, c = 1.0)  =~= @[16.nm, 9.77778.nm, 7.04.nm, 5.5.nm]
+    check depthGradedLayers(d_min = 5.0.nm, d_max = 14.0.nm, N = 5, c = 1.0)  =~= @[14.nm, 9.65517.nm, 7.36842.nm, 5.95745.nm, 5.nm]
 
 let ar = Argon.init()
 var dfBoth = newDataFrame()

@@ -321,14 +321,13 @@ proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]],
     ## Note: merged factor `2` from `exp(2 i β_i)` into definition of `β_i`
     let cθi = sqrt(1.0 - sinθ_i*sinθ_i)
     let d_by_λ = d_i / λ
-    result = 4*π * d_by_λ * n_i * cθi
+    result = 4.0 * π * d_by_λ * n_i * cθi
 
   # 1. convert incident angle to normal of interface and take `sin`
   ## NOTE: angles are actually the sin(θ) and a complex number! This is to deal with cases
   ## correctly in which grazing angle so small as the produce total reflection where Snell's law
   ## is not valid for real numbers.
-  var θn_i = complex(sin((90.° - θ_i).to(Radian)), 0.0) # incidence to normal angle, start from incidence to material
-  let sθn_0 = θn_i
+  let sθn_0 = complex(sin((90.° - θ_i).to(Radian)), 0.0) # incidence to normal angle, start from incidence to material
 
   let λ = wavelength(energy)
   ## NOTE: We can compute the refracted angle for any layer based on the 0-th layer, because
@@ -345,13 +344,15 @@ proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]],
   # layers from bottom up.
   for i in countdown(ns.high - 1, 1):
     # 1. compute `β_i`. Need incidence angle of current layer `i` and refractive index
-    let sθi = ns[0] * sθn_0 / ns[i]
+    # Note: the nomenclature with `β_i` and `sθi` is very confusing. But it's the one used by D. L. Windt.
+    # One should expect `j` to indicate the lower layer, but in this loop `i` is the "lower" index.
+    let sθi = refractedAngleSin(sθn_0, ns[0], ns[i]) # refracted angle of current interface
     let β_i = beta(sθi, ns[i], ds[i-1], λ.to(NanoMeter))
     # 2. compute `r_ij`
-    let angl = ns[0] * sθn_0 / ns[i-1]
-    let r_ij = reflectivity(angl, ns[i-1], sθi, ns[i], energy, 0.0.m, parallel = parallel)
+    let sθ_upper = refractedAngleSin(sθn_0, ns[0], ns[i-1]) # incidence angle of current interface
+    let r_ij = reflectivity(sθ_upper, ns[i-1], sθj, ns[i], energy, 0.0.m, parallel = parallel)
     # 3. assemble `r_j`
-    r_j = (r_ij + r_j * exp(im(1.0) * β_i)) / (1.0 + r_ij * r_j * exp(im(1.0) * β_i))
+    r_j = (r_ij + r_j * exp(im(float) * β_i)) / (1.0 + r_ij * r_j * exp(im(float) * β_i))
   # 4. once we are at the end of the loop, the last `r_j` is our final reflectivity
   result = abs2(r_j)
 

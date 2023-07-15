@@ -23,6 +23,7 @@ type
     f2*: InterpolatorType[float]
     molarMass*: g•mol⁻¹
     chemSym*: string # the chemical symbol, i.e. shortened name. Read from cache table
+    ρ*: g•cm⁻³
 
   Element*[Z: static int] = ElementRT
 
@@ -190,7 +191,23 @@ generateElements:
   Uranium      = (92, U )
 
 type
-  AnyCompound* = Compound | AnyElement
+  AnyCompound* = Compound | AnyElement | ElementRT
+
+
+type
+  ## XXX: If we try to restrict `T` and `B` to `AnyCompound` then we get a
+  ## "cannot instantiate" error...
+  DepthGradedMultilayer*[T; B; S: AnyCompound] = object
+    N*: int ## Number of layer repetitions
+    c*: float ## Power used in calculation of thicknesses
+    layers*: seq[NanoMeter] ## Thicknesses of each layer
+    dMin*: NanoMeter ## Thinnest multilayer (bottom)
+    dMax*: NanoMeter ## Thickest multilayer (top)
+    Γ: float ## Ratio of the top to bottom layer
+    top*: T ## Material at the top of each multilayer
+    bottom*: B ## Material at the bottom of each multilayer
+    substrate*: S ## Substrate below all N multilayers
+    σ*: NanoMeter ## Surface roughness in NanoMeter
 
 ## Usually not a fan of converters, but this should be safe. We only need it to
 ## construct `Compounds` from any statically typed `Element`
@@ -269,13 +286,14 @@ proc Z*(e: AnyElement): int =
   ## int that defines the type.
   e.Z
 
-proc init*[T: AnyElement](element: typedesc[T]): T =
+proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
   ## Return an instance of the desired element, which means reading the
   ## data from the `resources` directory and creating the interpolator to
   ## interpolate arbitrary energies.
   result.readNistData()
   let name = element.name()
   result.nProtons = result.Z
+  result.ρ = ρ
   result.chemSym = lookupChemSymbol(element)
   result.readHenkeData()
   # fill molar mass from global `MolarMassDf`
@@ -303,7 +321,7 @@ proc init*[T: AnyElement](element: typedesc[T]): T =
                                result.nistDf["μ/ρ", float].toSeq1D)
 
 proc name*(c: Compound): string
-proc initCompound*(elements: varargs[(ElementRT, int)]): Compound =
+proc initCompound*(ρ: g•cm⁻³, elements: varargs[(ElementRT, int)]): Compound =
   ## Initializes a `Compound` based on the given `Elements` and the number of
   ## atoms of that kind in the `Compound`.
   ##
@@ -314,11 +332,15 @@ proc initCompound*(elements: varargs[(ElementRT, int)]): Compound =
     result.elements.add (e: ElementRT(arg[0]), number: arg[1])
   # see if there is a tabulated value for this compound in our common density file
   let compoundName = result.name()
-  let densityDf = CompoundDensityDf.filter(f{`Formula` == compoundName})
-  if densityDf.len > 0:
-    ## NOTE: there Quartz and Silica have the same formula, but different densities.
-    ## Currently we take the *first* density!
-    result.ρ = densityDf["Density[g•cm⁻³]", float][0].g•cm⁻³
+  if ρ > 0.g•cm⁻³:
+    result.ρ = ρ
+  else:
+    let densityDf = CompoundDensityDf.filter(f{`Formula` == compoundName})
+    if densityDf.len > 0:
+      ## NOTE: there Quartz and Silica have the same formula, but different densities.
+      ## Currently we take the *first* density!
+      result.ρ = densityDf["Density[g•cm⁻³]", float][0].g•cm⁻³
+
 
 proc initCompound*(name: string): Compound =
   ## TODO: implement a parser for `Formula` in the CompoundDensityDf. Then we can generate a
@@ -371,8 +393,23 @@ macro compound*(args: varargs[untyped]): untyped =
   ##
   ## .. code-block:: Nim
   ##  let H₂O = compound (H, 2), O
+  ##
+  ## In addition a density can be given
+  ##
+  ## .. code-block:: Nim
+  ##  let H₂O = initCompound((H, 2), (O, 1), ρ = 1.g•cm⁻³)
+  ##  # or as
+  ##  let H₂O = initCompound((H, 2), (O, 1), density = 1.g•cm⁻³)
+  ##
+  ## the latter is useful in cases where the compound is not a well known
+  ## and tabulated value (in our CSV file).
   var variables = newStmtList()
   var compoundCall = nnkCall.newTree(ident"initCompound")
+  # 0. Add the default argument for the density
+  let arg = quote do:
+    -1.g•cm⁻³
+  compoundCall.add nnkExprEqExpr.newTree(ident"ρ", arg)
+  var ρ: NimNode
   for arg in args:
     var number = 1 # if no tuple with number of atoms given, default to 1
     var chemSym: string
@@ -382,6 +419,15 @@ macro compound*(args: varargs[untyped]): untyped =
       doAssert arg[1].kind == nnkIntLit
       chemSym = arg[0].strVal
       number = arg[1].intVal.int
+    of nnkExprEqExpr:
+      let argStr = getArgStr(arg[0])
+      const allowedArgs = ["ρ", "density"]
+      if argStr notin allowedArgs:
+        error("Invalid argument: " & $argStr & "!")
+      else:
+        ρ = arg[1]
+      # skip the rest of this iteration
+      continue
     of nnkIdent:
       let chemSym = arg.strVal
     else:
@@ -395,6 +441,9 @@ macro compound*(args: varargs[untyped]): untyped =
       let `elName` = `fullName`.init()
     # 2. add the created element and its number of atoms to the `initCompound` call
     compoundCall.add nnkTupleConstr.newTree(elName, newLit number)
+  # 3. overwrite the density argument if given
+  if ρ.kind != nnkNilLit:
+    compoundCall[1] = ρ
   # first init all elements
   result = variables
   # then perform the call
@@ -421,6 +470,27 @@ proc pretty*(gm: GasMixture, showPrefix: bool): string =
       result.add ", "
   result.add &"(T = {gm.temperature}, P = {gm.pressure})"
 proc `$`*(gm: GasMixture): string = pretty(gm, true)
+
+proc initDepthGradedMultilayer*[L: Length; T: AnyCompound; B: AnyCompound; S: AnyCompound](
+  top: T, bottom: B, substrate: S,
+  dMin, dMax: L,
+  Γ: float, N: int, c: float,
+  σ: L): DepthGradedMultilayer[T, B, S] =
+  let layersMulti = depthGradedLayers(dMin.to(nm), dMax.to(nm), N, c)
+  ## Compute the actual layers from Γ and `layers`
+  var layers = newSeq[NanoMeter]()
+  for layer in layersMulti:
+    layers.add layer * Γ
+    layers.add layer * (1.0 - Γ)
+  result = DepthGradedMultilayer[T, B, S](
+    N: N, c: c, Γ: Γ,
+    dMin: dMin.to(nm), dMax: dMax.to(nm),
+    layers: layers,
+    substrate: substrate,
+    top: top,
+    bottom: bottom,
+    σ: σ.to(nm)
+  )
 
 proc name*(c: Compound): string = $c
 
@@ -526,6 +596,7 @@ proc refractiveIndex*(c: Compound, energy: keV, ρ: g•cm⁻³): Complex[float]
   ## regime, because there we do not have to consider the properties of the
   ## molecular and atomic interactions having an effect on the much longer wavelength
   ## in case of visible light.
+  doAssert ρ > 0.g•cm⁻³, "Input " & $c & " does not have a density!"
   var sumβδ = complex(0.0, 0.0)
   let numAtoms = numAtoms(c) # total number of atoms in the molecule
   for el, num in c:
@@ -549,14 +620,29 @@ proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: 
   ##  `exp(-2 k_iz k_jz σ²)`
   ## where `k_iz`, `k_jz` are the wave vectors perpendicular to the surface in the medium
   ## before and after the interface between them.
+  doAssert ρ > 0.g•cm⁻³, "Input " & $e & " does not have a density!"
   let n = e.refractiveIndex(energy, ρ)
   result = reflectivity(θ, energy, n, σ, parallel = parallel)
 
 proc reflectivity*(e: AnyElement, energy: keV, ρ: g•cm⁻³, θ: Degree, σ: Meter): float =
   ## Overload of the above, which computes it for unpolarized light.
+  doAssert ρ > 0.g•cm⁻³, "Input " & $e & " does not have a density!"
   let n = e.refractiveIndex(energy, ρ)
   result = reflectivity(θ, energy, n, σ)
 
+proc reflectivity*[T; B; S](ml: DepthGradedMultilayer[T, B, S],
+                            θ_i: Degree, energy: keV, parallel: bool): float =
+  # 1. compute the refractive indices at this energy for each materials layer
+  const nVacuum = complex(1.0, 0.0)
+  let nTop = refractiveIndex(ml.top, energy, ml.top.ρ)
+  let nBot = refractiveIndex(ml.bottom, energy, ml.bottom.ρ)
+  let nSub = refractiveIndex(ml.substrate, energy, ml.substrate.ρ)
+  var ns = @[nVacuum]
+  for _ in 0 ..< ml.layers.len div 2:
+    ns.add nTop; ns.add nBot
+  ns.add nSub
+  # 2. compute the reflectivity
+  result = multilayerReflectivity(θ_i, energy, ns, ml.layers, parallel)
 
 ################################
 ## Plotting related procs ######

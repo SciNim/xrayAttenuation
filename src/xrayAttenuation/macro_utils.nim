@@ -47,3 +47,11 @@ proc genTypeClass*(e: var seq[NimNode]): NimNode =
     result = nnkInfix.newTree(ident"|",
                               genTypeClass(e),
                               el)
+
+proc getArgStr*(n: NimNode): string =
+  case n.kind
+  of nnkIdent, nnkSym,
+     nnkStrLit, nnkTripleStrLit, nnkRStrLit: result = n.strVal
+  of nnkOpenSymChoice, nnkClosedSymChoice: result = n[0].strVal
+  else:
+    error("Invalid node for argument `" & $(n.repr) & " in aes macro!")

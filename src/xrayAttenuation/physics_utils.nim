@@ -350,7 +350,7 @@ proc multilayerReflectivity*(θ_i: Degree, energy: keV, ns: seq[Complex[float]],
     let β_i = beta(sθi, ns[i], ds[i-1], λ.to(NanoMeter))
     # 2. compute `r_ij`
     let sθ_upper = refractedAngleSin(sθn_0, ns[0], ns[i-1]) # incidence angle of current interface
-    let r_ij = reflectivity(sθ_upper, ns[i-1], sθj, ns[i], energy, 0.0.m, parallel = parallel)
+    let r_ij = reflectivity(sθ_upper, ns[i-1], sθi, ns[i], energy, 0.0.m, parallel = parallel)
     # 3. assemble `r_j`
     r_j = (r_ij + r_j * exp(im(float) * β_i)) / (1.0 + r_ij * r_j * exp(im(float) * β_i))
   # 4. once we are at the end of the loop, the last `r_j` is our final reflectivity

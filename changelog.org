@@ -1,3 +1,12 @@
+* v0.2.1
+- Elements now have a density field as well, which can be handed to the
+  ~init~ call (in the future we might look them up as well).
+- Compounds can also be given a density in the ~compound~ macro by
+  providing a ~ρ~ or ~density~ argument.
+- The ~DepthGradedMultilayer~ type takes care of constructing the
+  correct refractive indices & layers for such a coating.
+- add ~depthGradedLayers~ helper to compute the layer thicknesses
+  according to the equations for depth graded layers
 * v0.2.0
 - add ~refractedAngle~, ~refractedAngleSin~ to get refracted angle
   after an interface (and the ~sin(θ_j)~ in the latter case)
@@ -12,7 +21,7 @@
 * v0.1.2
 - add ~FluroscenceLine~ type and CSV file:
   CSV file contains all known X-ray fluorescence lines and their
-  intensities. Using `getFluorescenceLines` the user can get all lines,
+  intensities. Using ~getFluorescenceLines~ the user can get all lines,
   their names and their relative intensities (be careful to
   normalize!).
 - add ~GasMixture~ type and option to compute absorption length and

@@ -34,7 +34,7 @@ type
   Compound* = object
     commonName: string # common name of the compound ("Water", "Salt", ...). Has to be user given
     elements: seq[NumberElement]
-    ρ: g•cm⁻³
+    ρ*: g•cm⁻³
 
   GasMixture* = object
     temperature*: Kelvin

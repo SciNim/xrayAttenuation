@@ -550,6 +550,25 @@ proc transmission*[L: Length, D: Density](c: AnyCompound, ρ: D, length: L, E: k
   let μ = c.attenuationCoefficient(E) # attenuation coefficient of the compound
   result = transmission(μ, ρ.to(g•cm⁻³), length.to(Meter))
 
+proc density*(gm: GasMixture): g•cm⁻³ =
+  ## Returns the density of the given gas mixture
+  for (g, r) in zip(gm.gases, gm.ratios):
+    let pr = gm.pressure * r # partial pressure of this gas
+    let ρr = density(pr, gm.temperature, g.molarWeight())
+    result += ρr
+
+template ρ*(gm: GasMixture): g•cm⁻³ = gm.density()
+
+proc transmission*[L: Length](gm: GasMixture, length: L, E: keV): float =
+  ## Computes the transmission using the Beer-Lambert law of photons of energy `E`
+  ## through the given gas mixture with density `ρ` and `length`.
+  let μ = gm.attenuationCoefficient(E) # attenuation coefficient of the compound
+  let ρ = density(gm)
+  ## XXX: Verify that this is actually correct! That we can just use the combined
+  ## attenuation coefficient like this! Looks correct for Ar/Iso, but that may be
+  ## due to the low fraction on isobutane!
+  result = transmission(μ / ρ, ρ.to(g•cm⁻³), length.to(Meter))
+
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.
   ##

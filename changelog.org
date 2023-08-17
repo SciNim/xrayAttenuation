@@ -7,6 +7,9 @@
   correct refractive indices & layers for such a coating.
 - add ~depthGradedLayers~ helper to compute the layer thicknesses
   according to the equations for depth graded layers
+- export ~ρ~ field for compounds
+- add ~density~ for gas mixtures to get density of the mixture
+- add ~transmission~ to compute the transmission of gas mixtures      
 * v0.2.0
 - add ~refractedAngle~, ~refractedAngleSin~ to get refracted angle
   after an interface (and the ~sin(θ_j)~ in the latter case)

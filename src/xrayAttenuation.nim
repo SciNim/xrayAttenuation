@@ -17,10 +17,13 @@ type
   ElementRT* = object
     nProtons*: int ## runtime value of `Z`. Different name to not clash with `Z` static
     nistDf*: DataFrame # stores lines, μ/ρ (raw data from NIST TSV file)
+    nistFormFactorDf*: DataFrame # stores lines, μ/ρ (raw data from NIST TSV file)
     henkeDf*: DataFrame # stores f1, f2 form factors (from Henke TSV files)
     μInterp*: InterpolatorType[float]
-    f1*: InterpolatorType[float]
-    f2*: InterpolatorType[float]
+    f1Henke*: InterpolatorType[float]
+    f2Henke*: InterpolatorType[float]
+    f1Nist*: InterpolatorType[float]
+    f2Nist*: InterpolatorType[float]
     molarMass*: g•mol⁻¹
     chemSym*: string # the chemical symbol, i.e. shortened name. Read from cache table
     ρ*: g•cm⁻³
@@ -224,23 +227,25 @@ proc readNistData(element: var AnyElement) =
   element.nistDf = readCsv(path, sep = '\t')
     .mutate(f{float: "Energy[keV]" ~ idx("Energy[MeV]").MeV.to(keV).float})
 
+proc readNistFormFactorData(element: var AnyElement) =
+  let z = Z(element)
+  let path = Resources / NIST_scattering_factors / &"data_element_{element.chemSym}.csv"
+  echo path
+  echo "ELEMENT: ", element
+  echo "sym ", element.chemSym
+  element.nistFormFactorDf = readCsv(path, sep = ',')
+
 proc readHenkeData(element: var AnyElement) =
   let pathHenke = Resources / Henke / element.chemSym.toLowerAscii() & ".nff"
-  let pathNist = Resources / NIST_scattering_factors / element.chemSym.toLowerAscii() & ".nff"
-  try: # first try NIST
-    ## XXX: Once we download NIST files ourselves, the columns will change!
-    element.henkeDf = readCsv(pathNist, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
-      .rename(f{"Energy[keV]" <- "Energy"})
-  except OSError:
-     try: # first try with spaces (almost all files)
-       element.henkeDf = readCsv(pathHenke, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
-         .rename(f{"Energy[eV]" <- "Energy"})
-         .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
-     except IOError:
-       # try with tab
-       element.henkeDf = readCsv(pathHenke, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
-         .rename(f{"Energy[eV]" <- "Energy"})
-         .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
+  try: # first try with spaces (almost all files)
+    element.henkeDf = readCsv(pathHenke, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+      .rename(f{"Energy[eV]" <- "Energy"})
+      .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
+  except IOError:
+    # try with tab
+    element.henkeDf = readCsv(pathHenke, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+      .rename(f{"Energy[eV]" <- "Energy"})
+      .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
 
 proc readMolarMasses*(): DataFrame =
   result = readCsv(Resources / "molar_masses.csv", sep = ' ')
@@ -255,14 +260,18 @@ proc readMolarMasses*(): DataFrame =
 proc f1eval*(it: AnyElement, val: keV): float =
   if val < 0.03.keV:
     result = 0.0
+  elif val < 30.keV: # NIST coarse data starts at 2 keV, but we use the range of Henke data
+    result = it.f1Henke.eval(val.float)
   else:
-    result = it.f1.eval(val.float)
+    result = it.f1Nist.eval(val.float)
 
 proc f2eval*(it: AnyElement, val: keV): float =
   if val < 0.03.keV:
     result = 0.0
+  elif val < 30.keV: # NIST coarse data starts at 2 keV, but we use the range of Henke data
+    result = it.f2Henke.eval(val.float)
   else:
-    result = it.f2.eval(val.float)
+    result = it.f2Nist.eval(val.float)
 
 proc f0eval*(it: AnyElement, val: keV): Complex[float] =
   ## Compute the `f0(ω)` value, the scattering factor (forward scattering)
@@ -290,19 +299,29 @@ proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
   ## Return an instance of the desired element, which means reading the
   ## data from the `resources` directory and creating the interpolator to
   ## interpolate arbitrary energies.
-  result.readNistData()
-  let name = element.name()
   result.nProtons = result.Z
   result.ρ = ρ
   result.chemSym = lookupChemSymbol(element)
+  let name = element.name()
+
+  # Read data
+  result.readNistData()
+  result.readNistFormFactorData()
   result.readHenkeData()
   # fill molar mass from global `MolarMassDf`
   result.molarMass = MolarMassDf.filter(f{`Name` == name})["AtomicWeight[g/mol]", float][0].g•mol⁻¹
 
-  result.f1 = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
-                          result.henkeDf["f1", float].toSeq1D)
-  result.f2 = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
-                          result.henkeDf["f2", float].toSeq1D)
+  result.f1Henke = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
+                               result.henkeDf["f1", float].toSeq1D)
+  result.f2Henke = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
+                               result.henkeDf["f2", float].toSeq1D)
+
+  echo result.nistFormFactorDf
+  result.f1Nist = newLinear1D(result.nistFormFactorDf["E [keV]", float].toSeq1D,
+                              result.nistFormFactorDf["f1 [e atom⁻¹]", float].toSeq1D)
+  result.f2Nist = newLinear1D(result.nistFormFactorDf["E [keV]", float].toSeq1D,
+                              result.nistFormFactorDf["f2 [e atom⁻¹]", float].toSeq1D)
+
   ## fix interp!
   ## NIST data has the same energy at every value right _before_ and _on_ a
   ## transition line. Instead we need to modify it such that the value before

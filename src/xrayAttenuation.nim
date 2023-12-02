@@ -223,16 +223,12 @@ proc readNistData(element: var AnyElement) =
   let z = Z(element)
   let name = if element.name() == "Aluminium": "Aluminum" else: element.name()
   let path = Resources / NIST / &"data_element_{name}_Z_{z}.csv"
-  echo path
   element.nistDf = readCsv(path, sep = '\t')
     .mutate(f{float: "Energy[keV]" ~ idx("Energy[MeV]").MeV.to(keV).float})
 
 proc readNistFormFactorData(element: var AnyElement) =
   let z = Z(element)
   let path = Resources / NIST_scattering_factors / &"data_element_{element.chemSym}.csv"
-  echo path
-  echo "ELEMENT: ", element
-  echo "sym ", element.chemSym
   element.nistFormFactorDf = readCsv(path, sep = ',')
 
 proc readHenkeData(element: var AnyElement) =
@@ -316,7 +312,6 @@ proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
   result.f2Henke = newLinear1D(result.henkeDf["Energy[keV]", float].toSeq1D,
                                result.henkeDf["f2", float].toSeq1D)
 
-  echo result.nistFormFactorDf
   result.f1Nist = newLinear1D(result.nistFormFactorDf["E [keV]", float].toSeq1D,
                               result.nistFormFactorDf["f1 [e atom⁻¹]", float].toSeq1D)
   result.f2Nist = newLinear1D(result.nistFormFactorDf["E [keV]", float].toSeq1D,

@@ -566,6 +566,14 @@ proc transmission*[L: Length, D: Density](c: AnyCompound, ρ: D, length: L, E: k
   if classify(result) == fcNaN and E < 0.03.keV:
     result = c.transmission(ρ, length, 0.03.keV)
 
+proc transmission*[L: Length](c: AnyCompound, length: L, E: keV): float =
+  ## Computes the transmission using the Beer-Lambert law of photons of energy `E`
+  ## through the density `ρ` of the compound and given `length`.
+  if c.ρ == 0.0.g•cm⁻³:
+    raise newException(ValueError, "The given compound : " & $c & " does not have a density " &
+      "assigned.")
+  result = c.transmission(c.ρ, length, E)
+
 proc density*(gm: GasMixture): g•cm⁻³ =
   ## Returns the density of the given gas mixture
   for (g, r) in zip(gm.gases, gm.ratios):

@@ -563,6 +563,8 @@ proc transmission*[L: Length, D: Density](c: AnyCompound, ρ: D, length: L, E: k
   ## through the given compound with density `ρ` and `length`.
   let μ = c.attenuationCoefficient(E) # attenuation coefficient of the compound
   result = transmission(μ, ρ.to(g•cm⁻³), length.to(Meter))
+  if classify(result) == fcNaN and E < 0.03.keV:
+    result = c.transmission(ρ, length, 0.03.keV)
 
 proc density*(gm: GasMixture): g•cm⁻³ =
   ## Returns the density of the given gas mixture
@@ -582,6 +584,8 @@ proc transmission*[L: Length](gm: GasMixture, length: L, E: keV): float =
   ## attenuation coefficient like this! Looks correct for Ar/Iso, but that may be
   ## due to the low fraction on isobutane!
   result = transmission(μ / ρ, ρ.to(g•cm⁻³), length.to(Meter))
+  if classify(result) == fcNaN and E < 0.03.keV:
+    result = gm.transmission(length, 0.03.keV)
 
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.

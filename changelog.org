@@ -1,3 +1,10 @@
+* v0.3.0
+- add support for form factor files from NIST (useful for energies
+  above 30 keV)
+- adds a tool to download all data from NIST (files are shipped with
+  the libraries though)  
+- do not return NaN below 30 eV (lower energies defined in Henke
+  files)
 * v0.2.1
 - Elements now have a density field as well, which can be handed to the
   ~init~ call (in the future we might look them up as well).

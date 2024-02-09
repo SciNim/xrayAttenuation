@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.1"
+version       = "0.3.0"
 author        = "Vindaar"
 description   = "Library for X-ray reflectivity and transmission / absorption through matter"
 license       = "MIT"

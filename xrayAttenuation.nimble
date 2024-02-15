@@ -4,8 +4,8 @@ version       = "0.3.0"
 author        = "Vindaar"
 description   = "Library for X-ray reflectivity and transmission / absorption through matter"
 license       = "MIT"
-srcDir        = ["src", "resources"]
-
+srcDir        = "src"
+installDirs   = @["tools", "resources"]
 
 # Dependencies
 

@@ -1,5 +1,5 @@
 import std / [unittest, math]
-import ../src/xrayAttenuation
+import ../xrayAttenuation
 
 import ggplotnim except almostEqual
 import unchained

@@ -1,3 +1,6 @@
+* v0.3.1
+- fix project structure to follow annoying nimble rules
+- add missing dependencies
 * v0.3.0
 - add support for form factor files from NIST (useful for energies
   above 30 keV)

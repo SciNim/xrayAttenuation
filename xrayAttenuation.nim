@@ -54,7 +54,7 @@ iterator pairs(c: Compound): (ElementRT, int) =
   for (el, num) in c.elements:
     yield (el, num)
 
-const Resources = currentSourcePath().parentDir().parentDir() / "resources"
+const Resources = currentSourcePath().parentDir() / "xrayAttenuation" / "resources"
 const NIST = "nist_mass_attenuation"
 const Henke = "henke_form_factors"
 const NIST_scattering_factors = "nist_form_factors"

@@ -34,6 +34,13 @@ proc density*[P: Pressure](p: P, T: Kelvin, M: g•mol⁻¹): g•cm⁻³ =
   ## unit), temperature `T` and molar mass `M`.
   result = (p * M / (R * T)).to(g•cm⁻³)
 
+proc pressure*[Rho: Density](ρ: Rho, T: Kelvin, M: g•mol⁻¹): mbar =
+  ## Compute the pressure `P` given a density `ρ` using the ideal gas law at the given
+  ## temperature `T` and  molar mass `M`.
+  # ρ = p * M / (R * T) ⇔
+  # p = ρ * R * T / M
+  result = (ρ * R * T / M).to(mbar)
+
 proc numberDensity*(ρ: g•cm⁻³, M: g•mol⁻¹): cm⁻³ =
   ## Computes the number density of a medium with density `ρ` and molar mass
   ## `M`. That is the number of particles in a unit volume (of `cm⁻³` in this case).

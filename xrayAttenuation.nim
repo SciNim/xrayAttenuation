@@ -546,9 +546,9 @@ proc parseCompound*(s: string): seq[(ElementRT, int)] =
   else:
     result.add (initElement(chemSym), 1)
 
-proc initCompound*(name: string): Compound =
+proc initCompound*(ρ: g•cm⁻³, name: string): Compound =
   ## Initializes a compound from a string, i.e. `H2O`, `CO2`, `Si3N4`, ...
-  result = parseCompound(name)
+  result = initCompound(ρ, parseCompound(name))
 
 proc initGasMixture*[P: Pressure](
   T: Kelvin,

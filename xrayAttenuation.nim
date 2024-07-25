@@ -668,7 +668,7 @@ proc pretty*(gm: GasMixture, showPrefix: bool): string =
   if showPrefix:
     result = "GasMixture: "
   for i, x in gm.gases:
-    result.add &"{x} ({gm.ratios[i]:.3f})"
+    result.add &"{x} ({gm.ratios[i]})"
     if i < gm.gases.len:
       result.add ", "
   result.add &"(T = {gm.temperature}, P = {gm.pressure})"

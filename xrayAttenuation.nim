@@ -68,11 +68,50 @@ const ElementSymbolTable = CacheTable"ElementSymbols"
 const ElementChemToNameTable = CacheTable"ElementChemToName"
 const ElementSeq = CacheSeq"ElementSeq"
 
+when defined(staticBuild):
+  ## If this is defined, we will slurp all files in the ~resources~ directory and use those
+  ## instead of reading them at RT!
+  import std / [os, tables, pathnorm]
+  export tables.`[]`, normalizePath
+  import shell
+  proc buildDataTable(path: string): Table[string, string] =
+    ## Reads data of all files in `path`, stores them as (path `string` -> data `string`) mapping
+    ##
+    ## NOTE: When building with `-d:mingw` the `walkDirRec` is broken. Thus we use `shell`.
+    result = initTable[string, string]()
+    let Path = Resources.normalizePath(dirSep = '/') #
+    let arg = "-name \"*.*\"" # only files!
+    let (res, err) = shellVerbose:
+      find ($Path) ($arg)
+    let files = res.splitLines()
+    for x in files:
+      result[normalizePath(x, dirSep = '/')] = staticRead(x)
+  const dataTable* = buildDataTable(Resources)
+
+macro readDataFile(args: varargs[untyped]): untyped =
+  ## Dispatches to either reading from the CT parsed data strings stored in `DataTable`
+  ## or a call to `readCsv` otherwise.
+  if defined(staticBuild):
+    result = nnkCall.newTree(ident"parseCsvString")
+    let path = args[0]
+    let lookup = nnkBracketExpr.newTree(
+      ident"dataTable",
+      nnkCall.newTree(ident"normalizePath", path, newLit '/')
+    )
+    result.add lookup
+    for i in 1 ..< args.len:
+      result.add args[i]
+  else:
+    result = nnkCall.newTree(ident"readCsv")
+    for arg in args:
+      result.add arg
+  #echo result.repr
+
 ## NOTE: instead of reading this into a global variable, we could also have an option to
 ## only read it when necessary (to look up compound densities)
-let CompoundDensityDf = readCsv(Resources / "density_common_materials.csv",
-                                sep = ',', header = "#")
-let XrayFluroscenceDf = readCsv(Resources / "xray_line_intensities.csv")
+let CompoundDensityDf = readDataFile(Resources / "density_common_materials.csv",
+                                     sep = ',', header = "#")
+let XrayFluroscenceDf = readDataFile(Resources / "xray_line_intensities.csv")
 proc readMolarMasses*(): DataFrame
 let MolarMassDf = readMolarMasses()
 
@@ -95,7 +134,6 @@ macro generateElements(elms: untyped): untyped =
     ElementSymbolTable[name.strVal] = chemSym
     ElementChemToNameTable[chemSym.strVal] = name
     ElementSeq.add name
-
     elements.add name
   let orN = elements.genTypeClass()
   result.add nnkTypeDef.newTree(nnkPostfix.newTree(ident"*", ident"AnyElement"),
@@ -201,7 +239,6 @@ generateElements:
 type
   AnyCompound* = Compound | AnyElement | ElementRT
 
-
 type
   ## XXX: If we try to restrict `T` and `B` to `AnyCompound` then we get a
   ## "cannot instantiate" error...
@@ -217,39 +254,42 @@ type
     substrate*: S ## Substrate below all N multilayers
     σ*: NanoMeter ## Surface roughness in NanoMeter
 
-## Usually not a fan of converters, but this should be safe. We only need it to
-## construct `Compounds` from any statically typed `Element`
-#converter toElementRT*(e: AnyElement): ElementRT = ElementRT(e)
-
 proc name*(e: AnyElement | typedesc[AnyElement]): string
 proc Z*(e: AnyElement): int
 
-proc readNistData(element: var AnyElement) =
-  let z = Z(element)
-  let name = if element.name() == "Aluminium": "Aluminum" else: element.name()
+proc readNistData(element: string, z: int): DataFrame =
+  let name = if element == "Aluminium": "Aluminum" else: element
   let path = Resources / NIST / &"data_element_{name}_Z_{z}.csv"
-  element.nistDf = readCsv(path, sep = '\t')
+  result = readDataFile(path, sep = '\t')
     .mutate(f{float: "Energy[keV]" ~ idx("Energy[MeV]").MeV.to(keV).float})
 
-proc readNistFormFactorData(element: var AnyElement) =
-  let z = Z(element)
-  let path = Resources / NIST_scattering_factors / &"data_element_{element.chemSym}.csv"
-  element.nistFormFactorDf = readCsv(path, sep = ',')
+proc readNistData(element: var AnyElement) =
+  element.nistDf = readNistData(element.name(), Z(element))
 
-proc readHenkeData(element: var AnyElement) =
-  let pathHenke = Resources / Henke / element.chemSym.toLowerAscii() & ".nff"
+proc readNistFormFactorData(chemSym: string): DataFrame =
+  let path = Resources / NIST_scattering_factors / &"data_element_{chemSym}.csv"
+  result = readDataFile(path, sep = ',')
+
+proc readNistFormFactorData(element: var AnyElement) =
+  element.nistFormFactorDf = readNistFormFactorData(element.chemSym)
+
+proc readHenkeData(chemSym: string): DataFrame =
+  let pathHenke = Resources / Henke / chemSym.toLowerAscii() & ".nff"
   try: # first try with spaces (almost all files)
-    element.henkeDf = readCsv(pathHenke, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+    result = readDataFile(pathHenke, sep = ' ', skipLines = 1, colNames = @["Energy", "f1", "f2"])
       .rename(f{"Energy[eV]" <- "Energy"})
       .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
   except IOError:
     # try with tab
-    element.henkeDf = readCsv(pathHenke, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
+    result = readDataFile(pathHenke, sep = '\t', skipLines = 1, colNames = @["Energy", "f1", "f2"])
       .rename(f{"Energy[eV]" <- "Energy"})
       .mutate(f{float: "Energy[keV]" ~ idx("Energy[eV]").eV.to(keV).float})
 
+proc readHenkeData(element: var AnyElement) =
+  element.henkeDf = readHenkeData(element.chemSym)
+
 proc readMolarMasses*(): DataFrame =
-  result = readCsv(Resources / "molar_masses.csv", sep = ' ')
+  result = readDataFile(Resources / "molar_masses.csv", sep = ' ')
     .head(112) # drop last 2 elements
     .mutate(f{Value -> float: "AtomicWeight[g/mol]" ~ (
       if idx("AtomicWeight[g/mol]").kind == VString:
@@ -296,19 +336,125 @@ proc Z*(e: AnyElement): int =
   ## int that defines the type.
   e.Z
 
-proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
+macro withElements(name, varIdent, body: untyped): untyped =
+  ## Constructs a `case` statement that dispatches the given `name` to a
+  ## branch in which the element is available as `varIdent`. Essentially:
+  ##
+  ## case element
+  ## of "Hydrogen", "H":
+  ##   let typ = Hydrogen.init()
+  ##   `body`
+  ## ...
+  ## else: doAssert false
+  result = nnkCaseStmt.newTree(name)
+  for el in ElementSeq:
+    let elName = ident(el)
+    let bodyIt = quote do: # body plus injected type
+      let `varIdent` = `elName`.init()
+      `body`
+    result.add nnkOfBranch.newTree(newLit(el.strVal), # Name of element
+                                   newLit(ElementSymbolTable[el.strVal].strVal), # chemical symbol
+                                   bodyIt)
+  let elseBody = quote do:
+    doAssert false, "The element " & $(`name`) & " is not known."
+  result.add nnkElse.newTree(elseBody)
+
+macro protonsImpl(name: untyped): untyped =
+  ## Constructs a `case` statement that dispatches to the number of protons
+  ## for each branch (corresponding to an element or chemical symbol)
+  ##
+  ## case element
+  ## of "Hydrogen", "H":
+  ##   result = 1
+  ## ...
+  ## else: doAssert false
+  result = nnkCaseStmt.newTree(name)
+  for (el, num) in pairs(ElementTable):
+    let elName = ident(el)
+    let resId = ident"result"
+    let csym = newLit(ElementSymbolTable[el].strVal)
+    let bodyIt = quote do: # body plus injected type
+      `resId` = `num`
+    result.add nnkOfBranch.newTree(newLit(el), # Name of element
+                                   csym, # chemical symbol
+                                   bodyIt)
+  let elseBody = quote do:
+    doAssert false, "The element " & $(`name`) & " is not known."
+  result.add nnkElse.newTree(elseBody)
+
+macro chemImpl(name: untyped): untyped =
+  ## Constructs a `case` statement that dispatches to the chemical symbol
+  ## for each branch (corresponding to an element or chemical symbol)
+  ##
+  ## case element
+  ## of "Hydrogen", "H":
+  ##   result = "H"
+  ## ...
+  ## else: doAssert false
+  result = nnkCaseStmt.newTree(name)
+  for (el, num) in pairs(ElementTable):
+    let elName = ident(el)
+    let resId = ident"result"
+    let csym = newLit(ElementSymbolTable[el].strVal)
+    let bodyIt = quote do: # body plus injected type
+      `resId` = `csym`
+    result.add nnkOfBranch.newTree(newLit(el), # Name of element
+                                   csym, # chemical symbol
+                                   bodyIt)
+  let elseBody = quote do:
+    doAssert false, "The element " & $(`name`) & " is not known."
+  result.add nnkElse.newTree(elseBody)
+
+macro nameImpl(name: untyped): untyped =
+  ## Constructs a `case` statement that dispatches to the name
+  ## for each branch (corresponding to an element or chemical symbol)
+  ##
+  ## case element
+  ## of "Hydrogen", "H":
+  ##   result = "Hydrogen"
+  ## ...
+  ## else: doAssert false
+  result = nnkCaseStmt.newTree(name)
+  for (el, num) in pairs(ElementTable):
+    let elName = ident(el)
+    let resId = ident"result"
+    let csym = newLit(ElementSymbolTable[el].strVal)
+    let bodyIt = quote do: # body plus injected type
+      `resId` = `el`
+    result.add nnkOfBranch.newTree(newLit(el), # name of element
+                                   csym, # chemical symbol
+                                   bodyIt)
+  let elseBody = quote do:
+    doAssert false, "The element " & $(`name`) & " is not known."
+  result.add nnkElse.newTree(elseBody)
+  #echo result.repr
+
+proc protons*(element: string): int =
+  ## Returns the number of protons for a given element name or chemical formula
+  protonsImpl(element)
+
+proc chemicalSymbol*(element: string): string =
+  ## Returns the chemical symbol of the given element
+  chemImpl(element)
+
+proc elementName*(element: string): string =
+  ## Returns the name of the given element (which may be a chemical symbol!)
+  nameImpl(element)
+
+proc initElement*(element: string, ρ = -1.g•cm⁻³): ElementRT =
   ## Return an instance of the desired element, which means reading the
   ## data from the `resources` directory and creating the interpolator to
   ## interpolate arbitrary energies.
-  result.nProtons = result.Z
+  let name = elementName(element)
+  result.name = name
+  result.nProtons = element.protons()
   result.ρ = ρ
-  result.chemSym = lookupChemSymbol(element)
-  let name = element.name()
+  result.chemSym = chemicalSymbol(element)
 
   # Read data
-  result.readNistData()
-  result.readNistFormFactorData()
-  result.readHenkeData()
+  result.nistDf = readNistData(name, result.nProtons)
+  result.nistFormFactorDf = readNistFormFactorData(result.chemSym)
+  result.henkeDf = readHenkeData(result.chemSym)
   # fill molar mass from global `MolarMassDf`
   result.molarMass = MolarMassDf.filter(f{`Name` == name})["AtomicWeight[g/mol]", float][0].g•mol⁻¹
 
@@ -338,6 +484,13 @@ proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
         )})
   result.μInterp = newLinear1D(result.nistDf["Energy[keV]", float].toSeq1D,
                                result.nistDf["μ/ρ", float].toSeq1D)
+
+proc init*[T: AnyElement](element: typedesc[T], ρ = -1.g•cm⁻³): T =
+  ## Return an instance of the desired element, which means reading the
+  ## data from the `resources` directory and creating the interpolator to
+  ## interpolate arbitrary energies.
+  let res = initElement($element, ρ)
+  result = T(res)
 
 proc name*(c: Compound): string
 proc initCompound*(ρ: g•cm⁻³, elements: varargs[(ElementRT, int)]): Compound =

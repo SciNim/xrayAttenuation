@@ -50,11 +50,15 @@ type
     energy*: keV
     intensity*: float # relative intesity compared to *other lines of the same shell*
 
-iterator pairs(c: Compound): (ElementRT, int) =
+iterator pairs*(c: Compound): (ElementRT, int) =
   for (el, num) in c.elements:
     yield (el, num)
 
-const Resources = currentSourcePath().parentDir() / "xrayAttenuation" / "resources"
+iterator pairs*(gm: GasMixture): (Compound, float) =
+  for (c, ratio) in zip(gm.gases, gm.ratios):
+    yield (c, ratio)
+
+const Resources = currentSourcePath().parentDir() / "xrayAttenuation" / "resources/"
 const NIST = "nist_mass_attenuation"
 const Henke = "henke_form_factors"
 const NIST_scattering_factors = "nist_form_factors"

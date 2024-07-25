@@ -15,6 +15,7 @@ and Henke files based on form factors `f1, f2` for energies from 10 eV to 30 keV
 
 type
   ElementRT* = object
+    name*: string # name of the element
     nProtons*: int ## runtime value of `Z`. Different name to not clash with `Z` static
     nistDf*: DataFrame # stores lines, μ/ρ (raw data from NIST TSV file)
     nistFormFactorDf*: DataFrame # stores lines, μ/ρ (raw data from NIST TSV file)

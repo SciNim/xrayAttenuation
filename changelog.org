@@ -1,3 +1,16 @@
+* v0.4.0
+- add ~staticBuild~ option and default to runtime elements.
+  -> Compile with ~-d:staticBuild~ to read all data files at compile
+  time to have a binary that can be moved around without shipping
+  the CSV data files.
+- add ~pairs~ iterator for ~GasMixture~ and export one for ~Compound~  
+- add helper ~pressure~ to compute pressure given temp and density
+- move ~getFluorescenceLines~ above the plotting helpers
+- deprecated molarWeight for compounds (-> molarMass), add for gases
+- do not default to 3 digits of precision for gas mixtures
+- minor fixes in ~compound~ macro for construction
+- add helper to parse a compound from a given string
+- give runtime elements their name as field
 * v0.3.1
 - fix project structure to follow annoying nimble rules
 - add missing dependencies

@@ -618,7 +618,7 @@ macro compound*(args: varargs[untyped]): untyped =
     var chemSym: string
     case arg.kind
     of nnkTupleConstr:
-      doAssert arg[0].kind == nnkIdent
+      doAssert arg[0].kind in {nnkIdent, nnkSym}
       doAssert arg[1].kind == nnkIntLit
       chemSym = arg[0].strVal
       number = arg[1].intVal.int
@@ -632,7 +632,7 @@ macro compound*(args: varargs[untyped]): untyped =
       # skip the rest of this iteration
       continue
     of nnkIdent:
-      let chemSym = arg.strVal
+      chemSym = arg.strVal
     else:
       error("The `compound` macro receives either a tuple of chemical symbol and number " &
         "of atoms `(H, 2)` or only a chemical symbol `O`.")

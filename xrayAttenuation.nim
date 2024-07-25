@@ -513,11 +513,42 @@ proc initCompound*(ρ: g•cm⁻³, elements: varargs[(ElementRT, int)]): Compou
       ## Currently we take the *first* density!
       result.ρ = densityDf["Density[g•cm⁻³]", float][0].g•cm⁻³
 
+proc parseCompound*(s: string): seq[(ElementRT, int)] =
+  ## Parses a given compound string, i.e. `CO2`, `H2O`, `Si3N4`, ...
+  var i = 0
+  var chemSym = ""
+  var num = ""
+  var inDigits = false
+  while i < s.len:
+    case s[i]
+    of {'A' .. 'Z'}:
+      if inDigits: # last was digit, add last element / number pair
+        result.add (initElement(chemSym), parseInt(num))
+        chemSym = ""
+        num = ""
+        inDigits = false
+      elif chemSym.len > 0 and num.len == 0: ## Short form, e.g. `CO2` with implied `1`
+        result.add (initElement(chemSym), 1)
+        chemSym = ""
+
+      chemSym.add s[i]
+    of {'a' .. 'z'}: # element with multiple letters
+      chemSym.add s[i]
+    of {'0' .. '9'}:
+      num.add s[i]
+      inDigits = true
+    else:
+      doAssert false, "Encountered unexpected character in compound formula: `" & $s[i] & "`, full input: " & $s
+    inc i
+  # add last
+  if num.len > 0:
+    result.add (initElement(chemSym), parseInt(num))
+  else:
+    result.add (initElement(chemSym), 1)
 
 proc initCompound*(name: string): Compound =
-  ## TODO: implement a parser for `Formula` in the CompoundDensityDf. Then we can generate a
-  ## Compound straight from a name and fill the `name` field!
-  doAssert false, "Parsing of `Formula` names not yet implemented!"
+  ## Initializes a compound from a string, i.e. `H2O`, `CO2`, `Si3N4`, ...
+  result = parseCompound(name)
 
 proc initGasMixture*[P: Pressure](
   T: Kelvin,

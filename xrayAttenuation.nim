@@ -700,17 +700,27 @@ proc name*(c: Compound): string = $c
 ################################
 ## Physics related procedures ##
 ################################
-proc molarWeight*(c: Compound): g•mol⁻¹ =
-  ## Computes the molar weight of the compound:
+proc molarMass*(c: Compound): g•mol⁻¹ =
+  ## Computes the molar mass of the compound:
   ##
-  ## `MW = Σ_i x_i · A_i`
+  ## `M = Σ_i x_i · A_i`
   ## where `x_i` is the number of atoms of that type in the compound
-  ## and `A_i` the atomic mass of each atom in `g•mol⁻¹`.
+  ## and `A_i` the atomic mass of each atom in `g•mol⁻¹`
+  ## (with `A_i = A_r,i · M_u` where `A_r,i` is the standard atomic weight
+  ## of the element and `M_u =~= 1 g•mol⁻¹` the molar mass constant).
   for el, num in c:
     result += el.molarMass * num.float
 
+proc molarWeight*(c: Compound): g•mol⁻¹ {.deprecated: "Please use `molarMass(Compound)` instead.".} =
+  molarMass(c)
+
+proc molarMass*(gm: GasMixture): g•mol⁻¹ =
+  ## Computes the molar weight of a gas mixture.
+  for c, ratio in gm:
+    result += c.molarWeight() * ratio
+
 proc numAtoms*(c: Compound): int =
-  ## Returns the number of atoms in the compound
+  ## Returns the number of atoms in the compound.
   for _, num in c:
     inc result, num
 

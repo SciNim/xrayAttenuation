@@ -1,3 +1,7 @@
+* v0.4.1
+- add basic CI running test / playground
+- compile examples as static linux binary
+- extend gas fraction example to include calculation of transmission data
 * v0.4.0
 - add ~staticBuild~ option and default to runtime elements.
   -> Compile with ~-d:staticBuild~ to read all data files at compile

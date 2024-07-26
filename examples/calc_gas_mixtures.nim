@@ -48,6 +48,7 @@ proc getMassFractions(gm: GasMixture): seq[(string, float)] =
       let fraction = cFrac * ratio * molarMass(c) / molarMass(gm)
       result.add (el, float fraction)
 
+proc unitToFname[T: SomeUnit](s: T): string = result = $s.float & "." & unitOf(s)
 proc genOutfile(gm: GasMixture, outfile, outdir: string): string =
   if outfile.len > 0: result = outfile
   else:
@@ -55,7 +56,7 @@ proc genOutfile(gm: GasMixture, outfile, outdir: string): string =
     result.add "transmission"
     for el, frac in gm:
       result.add &"_{el}_{frac}"
-    result.add &"_{gm.pressure}_{gm.temperature}"
+    result.add &"_{unitToFname gm.pressure}_{unitToFname gm.temperature}"
     result.add ".csv"
 
 proc calcTransmission(gm: GasMixture, length: cm, energyMin, energyMax: keV, num: int, outfile: string) =

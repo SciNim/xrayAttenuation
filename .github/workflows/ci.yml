@@ -90,11 +90,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build examples
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.nim == '2.0.x' }}
         shell: bash
         run: |
           cd xrayAttenuation/examples
-          nim musl -d:staticBuild -d:release calc_gas_mixtures.nim
+          nim c -d:musl -d:staticBuild -d:release calc_gas_mixtures.nim
 
       - name: Upload example as artifact
         uses: actions/upload-artifact@v3

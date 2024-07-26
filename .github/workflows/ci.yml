@@ -45,7 +45,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies (Ubuntu)
-        if: ${{matrix.target == 'linux'}}
+        if: ${{matrix.os == 'linux'}}
         run: |
           sudo apt-get update
           sudo apt-get install musl musl-dev
@@ -65,7 +65,7 @@ jobs:
           nimble -y test
 
       - name: Build docs
-        if: ${{ matrix.docs == 'true' && matrix.target == 'linux' }}
+        if: ${{ matrix.docs == 'true' && matrix.os == 'linux' }}
         shell: bash
         run: |
           cd xrayAttenuation
@@ -82,7 +82,7 @@ jobs:
       - name: Publish docs
         if: >
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
-          matrix.target == 'linux' && matrix.branch == 'devel'
+          matrix.os == 'linux' && matrix.nim == 'devel'
         uses: crazy-max/ghaction-github-pages@v1
         with:
           build_dir: xrayAttenuation/docs
@@ -90,7 +90,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build examples
-        if: ${{ matrix.target == 'linux' }}
+        if: ${{ matrix.os == 'linux' }}
         shell: bash
         run: |
           cd xrayAttenuation/examples

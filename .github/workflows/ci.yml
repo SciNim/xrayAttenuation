@@ -137,7 +137,8 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Release notes for version ${{ github.ref }}
+            Release notes for version ${{ github.ref }}. See the \
+            changelog.org file for more information.
           draft: false
           prerelease: false
 

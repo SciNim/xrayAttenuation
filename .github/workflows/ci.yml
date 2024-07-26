@@ -104,6 +104,7 @@ jobs:
 
   release:
     runs-on: ${{ matrix.os }}
+    needs: build
     strategy:
       fail-fast: false
       matrix:

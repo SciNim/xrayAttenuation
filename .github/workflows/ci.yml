@@ -48,7 +48,7 @@ jobs:
         if: ${{matrix.os == 'ubuntu-latest'}}
         run: |
           sudo apt-get update
-          sudo apt-get install musl musl-dev
+          sudo apt-get install musl musl-dev musl-tools
 
       - name: Setup nimble & deps
         shell: bash

@@ -48,7 +48,10 @@ proc getMassFractions(gm: GasMixture): seq[(string, float)] =
       let fraction = cFrac * ratio * molarMass(c) / molarMass(gm)
       result.add (el, float fraction)
 
-proc unitToFname[T: SomeUnit](s: T): string = result = $s.float & "." & unitOf(s)
+proc unitToFname[T: SomeUnit](s: T): string =
+  let us = unitOf(s).multiReplace(("μ", "u"))
+  result = $s.float & "." & us
+
 proc genOutfile(gm: GasMixture, length: cm, outfile, outdir: string): string =
   if outfile.len > 0: result = outfile
   else:

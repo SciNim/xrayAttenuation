@@ -1,0 +1,148 @@
+name: xrayAttenuation CI
+on:
+  push:
+    paths:
+      - 'tests/**'
+      - 'src/**'
+      - 'docs/**'
+      - 'xrayAttenuation.nimble'
+      - '.github/workflows/ci.yml'
+    branches:
+      - 'master'
+  pull_request:
+    paths:
+      - 'tests/**'
+      - 'src/**'
+      - 'docs/**'
+      - 'xrayAttenuation.nimble'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        nim:
+          - '1.6.x'
+          - '2.0.x'
+          - 'devel'
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macOS-latest
+    name: '${{ matrix.nim }} (${{ matrix.os }})'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: xrayAttenuation
+
+      - name: Setup nim
+        uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: ${{ matrix.nim }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies (Ubuntu)
+        if: ${{matrix.target == 'linux'}}
+        run: |
+          sudo apt-get update
+          sudo apt-get install musl musl-dev
+
+      - name: Setup nimble & deps
+        shell: bash
+        run: |
+          cd xrayAttenuation
+          nimble refresh -y
+          nimble install -y
+          nimble ciDeps -y
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd xrayAttenuation
+          nimble -y test
+
+      - name: Build docs
+        if: ${{ matrix.docs == 'true' && matrix.target == 'linux' }}
+        shell: bash
+        run: |
+          cd xrayAttenuation
+          branch=${{ github.ref }}
+          branch=${branch##*/}
+          nimble doc --project --outdir:docs \
+            '--git.url:https://github.com/${{ github.repository }}' \
+            '--git.commit:${{ github.sha }}' \
+            "--git.devel:$branch" \
+            xrayAttenuation.nim
+          # Ignore failures for older Nim
+          cp docs/{the,}index.html || true
+
+      - name: Publish docs
+        if: >
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          matrix.target == 'linux' && matrix.branch == 'devel'
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          build_dir: xrayAttenuation/docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build examples
+        if: ${{ matrix.target == 'linux' }}
+        shell: bash
+        run: |
+          cd xrayAttenuation/examples
+          nim musl -d:staticBuild -d:release calc_gas_mixtures.nim
+
+      - name: Upload example as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: calc_gas_mixtures
+          path: xrayAttenuation/examples/calc_gas_mixtures
+
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        nim:
+          - '2.0.x'
+        os:
+          - ubuntu-latest
+    name: '${{ matrix.nim }} (${{ matrix.os }})'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: xrayAttenuation
+
+      - name: Download binary
+        uses: actions/download-artifact@v3
+        with:
+          name: calc_gas_mixtures
+          path: ./ # Specify the path to download the binary to
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release notes for version ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./calc_gas_mixtures
+          asset_name: calc_gas_mixtures
+          asset_content_type: application/octet-stream

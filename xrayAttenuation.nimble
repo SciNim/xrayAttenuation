@@ -12,3 +12,12 @@ requires "ggplotnim >= 0.5.1"
 requires "unchained >= 0.1.9"
 requires "numericalnim"
 requires "cligen"
+
+task ciDeps, "Install CI dependencies":
+  exec "nimble install nimhdf5"
+
+task test, "Run the tests":
+  exec "nim c -r tests/tests.nim"
+  exec "nim c -r playground/mean_free_path.nim"
+  # only compile for now
+  exec "nim c playground/llnl_telescope_reflectivity.nim"

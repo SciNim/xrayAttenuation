@@ -1,3 +1,6 @@
+* v0.4.2
+- change ~examples/calc_gas_mixtures.nim~ to not use half width space
+  in filenames, use dot instead
 * v0.4.1
 - add basic CI running test / playground
 - compile examples as static linux binary

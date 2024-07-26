@@ -2,6 +2,7 @@
 - add support for transmission output in ~examples/calc_gas_mixtures~
   for solids
   - improve output filenames a bit more
+  - replace ~μ~ symbol in output file names by ~u~ for compatibility 
 * v0.4.2
 - change ~examples/calc_gas_mixtures.nim~ to not use half width space
   in filenames, use dot instead

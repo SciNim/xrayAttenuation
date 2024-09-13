@@ -115,26 +115,9 @@ proc gas(elements: seq[string], pressure: mbar, T = 293.15.K,
   ## of X-rays through such a gas in the energy range `[energyMin, energyMax]` and store
   ## it `outfile`. In addition extra outfiles derived from `outfile` are produced for each
   ## gas compound split by their partial pressures.
-  var gases: seq[Compound]
-  var frac: seq[float]
-  for el in elements:
-    let sp = el.split(",").mapIt(it.strip)
-    let elRTs = parseCompound(sp[0])
-    let fr = parseFloat sp[1]
-
-    gases.add initCompound(0.0.g•cm⁻³, elRTs)
-    if fr > 1.0:
-      echo "[ERROR] Pleas give the gas fractions as relative to 1.0 and not as percentages."
-      return
-    frac.add fr
-
-  if abs(frac.sum - 1) > 1e-4:
-    echo frac.sum
-    echo "From numbers: ", frac
-    echo "[ERROR] The gas mixture fractions do not sum to 1!"
-    return
-
-  let gm = initGasMixture(T, pressure, gases, frac)
+  # 1. Initialize the gas mixture from the runtime information
+  let gm = parseGasMixture(elements, pressure, T)
+  # 2. Print output
   stdout.styledWriteLine(fgYellow, "==================== Gas ====================")
   stdout.styledWriteLine(fgYellow, &"\t{gm}")
   stdout.styledWriteLine(fgYellow, &"\tρ = {gm.ρ.to(kg•m⁻³)}")
@@ -155,11 +138,12 @@ proc solid(elements: seq[string], ρ = -1.0.g•cm⁻³,
   ## given produces a CSV file of the transmission through the compound.
   ##
   ## Note: The output file name contains the density as a float in g•cm⁻³ without a unit.
+  # 1. Parse the compound
   var elRT: seq[(ElementRT, int)]
   for el in elements:
     elRT.add parseCompound(el)
-
   var comp = initCompound(ρ, elRT)
+  # 2. Print output
   stdout.styledWriteLine(fgYellow, "==================== Solid ====================")
   stdout.styledWriteLine(fgYellow, &"\t{comp}")
   stdout.styledWriteLine(fgYellow, &"\tρ = {comp.ρ.to(g•cm⁻³)}")

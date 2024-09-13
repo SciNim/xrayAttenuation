@@ -578,6 +578,33 @@ proc initGasMixture*[P: Pressure](
     ps.add p
   result = initGasMixture(T, pressure, gs, ps)
 
+proc parseGasMixture*[T: Temperature, P: Pressure](
+  compounds: seq[string],
+  pressure: P,
+  temp: T = 293.15.K): GasMixture =
+  ## Initializes a gas mixture from a list of runtime compounds, like
+  ## `@["Ar,0.977", "C4H10,0.023"]`.
+  var gases: seq[Compound]
+  var frac: seq[float]
+  for el in compounds:
+    let sp = el.split(",").mapIt(it.strip)
+    let elRTs = parseCompound(sp[0])
+    let fr = parseFloat sp[1]
+    # The density is computed from ideal gas law
+    gases.add initCompound(0.0.g•cm⁻³, elRTs)
+    if fr > 1.0:
+      echo "[ERROR] Pleas give the gas fractions as relative to 1.0 and not as percentages."
+      return
+    frac.add fr
+
+  if abs(frac.sum - 1) > 1e-4:
+    echo frac.sum
+    echo "From numbers: ", frac
+    echo "[ERROR] The gas mixture fractions do not sum to 1!"
+    return
+
+  result = initGasMixture(temp.to(Kelvin), pressure.to(mbar), gases, frac)
+
 macro compound*(args: varargs[untyped]): untyped =
   ## Generates a `Compound` from given the given chemical symbols. If a
   ## tuple is given the first field refers to the element and the second to the

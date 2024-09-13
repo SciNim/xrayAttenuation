@@ -821,6 +821,11 @@ proc transmission*[L: Length](gm: GasMixture, length: L, E: keV): float =
   if classify(result) == fcNaN and E < 0.03.keV:
     result = gm.transmission(length, 0.03.keV)
 
+proc absorption*[L: Length](gm: GasMixture, length: L, E: keV): float =
+  ## Computes the absorption for the given length and energy given the gas mixture.
+  ## It is simply `Absorption = 1 - Transmission`.
+  result = 1.0 - gm.transmission(length, E)
+
 proc absorptionLength*(c: AnyCompound, ρ: g•cm⁻³, energy: keV): Meter =
   ## Computes the absorption length of the given compound and density at `energy`.
   ##

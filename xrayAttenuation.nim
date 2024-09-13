@@ -56,8 +56,8 @@ iterator pairs*(c: Compound): (ElementRT, int) =
     yield (el, num)
 
 iterator pairs*(gm: GasMixture): (Compound, float) =
-  for (c, ratio) in zip(gm.gases, gm.ratios):
-    yield (c, ratio)
+  for i in 0 ..< gm.gases.len:
+    yield (gm.gases[i], gm.ratios[i])
 
 const Resources = currentSourcePath().parentDir() / "xrayAttenuation" / "resources/"
 const NIST = "nist_mass_attenuation"
@@ -779,7 +779,7 @@ proc attenuationCoefficient*(gm: GasMixture, energy: keV): cm⁻¹ =
   ## Computes the attenuation coefficient (multiplied with the density!)
   ## for the gas mixture taking into account the partial pressures of each
   ## gas.
-  for (g, r) in zip(gm.gases, gm.ratios):
+  for (g, r) in pairs(gm):
     let pr = gm.pressure * r # partial pressure of this gas
     let ρr = density(pr, gm.temperature, g.molarWeight())
     result += attenuationCoefficient(g, energy) * ρr
@@ -802,7 +802,7 @@ proc transmission*[L: Length](c: AnyCompound, length: L, E: keV): float =
 
 proc density*(gm: GasMixture): g•cm⁻³ =
   ## Returns the density of the given gas mixture
-  for (g, r) in zip(gm.gases, gm.ratios):
+  for (g, r) in pairs(gm):
     let pr = gm.pressure * r # partial pressure of this gas
     let ρr = density(pr, gm.temperature, g.molarWeight())
     result += ρr

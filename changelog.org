@@ -1,5 +1,8 @@
 * v0.4.4
-- add ~parseGasMixture~ helper to parse gas mixtures from runtime values
+- add ~parseGasMixture~ helper to parse gas mixtures from runtime
+  values
+- ignore some low hanging performance fruit by avoiding ~zip~
+- add ~absorption~ for gases (1 - transmission)    
 * v0.4.3
 - add support for transmission output in ~examples/calc_gas_mixtures~
   for solids

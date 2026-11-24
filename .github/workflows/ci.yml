@@ -3,7 +3,10 @@ on:
   push:
     paths:
       - 'tests/**'
-      - 'src/**'
+      - 'xrayAttenuation/**'
+      - 'xrayAttenuation.nim'
+      - 'examples/**'
+      - 'playground/**'
       - 'docs/**'
       - 'xrayAttenuation.nimble'
       - '.github/workflows/ci.yml'
@@ -14,7 +17,10 @@ on:
   pull_request:
     paths:
       - 'tests/**'
-      - 'src/**'
+      - 'xrayAttenuation/**'
+      - 'xrayAttenuation.nim'
+      - 'examples/**'
+      - 'playground/**'
       - 'docs/**'
       - 'xrayAttenuation.nimble'
       - '.github/workflows/ci.yml'
@@ -99,10 +105,12 @@ jobs:
           nim c -d:musl -d:staticBuild -d:release calc_gas_mixtures.nim
 
       - name: Upload example as artifact
-        uses: actions/upload-artifact@v3
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.nim == '2.0.x' }}
+        uses: actions/upload-artifact@v7
         with:
           name: calc_gas_mixtures
           path: xrayAttenuation/examples/calc_gas_mixtures
+          if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -123,7 +131,7 @@ jobs:
           path: xrayAttenuation
 
       - name: Download binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: calc_gas_mixtures
           path: ./ # Specify the path to download the binary to
